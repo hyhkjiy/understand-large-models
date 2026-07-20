@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第四册 · 从接龙到助手:SFT、RLHF 与推理工程 | 看懂大模型</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.stage3{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.st3{flex:1;min-width:200px;background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:all .15s}
+.st3:hover{border-color:var(--teal)}
+.st3.sel{border-color:var(--ink);border-width:2px;box-shadow:3px 3px 0 rgba(31,43,62,.14);background:var(--marker-soft)}
+.st3 .sn3{font-family:var(--mono);font-size:.68rem;color:var(--sub);letter-spacing:.08em}
+.st3 .st3t{font-family:var(--serif);font-weight:900;font-size:1.05rem;margin:2px 0}
+.st3 .st3d{font-size:.8rem;color:var(--sub);line-height:1.55}
+.chatbox{background:#fff;border:1.5px solid var(--ink);border-radius:12px;padding:16px 18px;margin-top:14px;box-shadow:3px 3px 0 rgba(31,43,62,.12)}
+.chat-q{font-weight:700;margin-bottom:10px}
+.chat-a{white-space:pre-wrap;font-size:.95rem;line-height:1.8;background:#F4F7FA;border-radius:8px;padding:12px 14px;min-height:5em}
+.chat-tag{display:inline-block;font-size:.72rem;border-radius:999px;padding:1px 10px;margin-bottom:8px;font-weight:700}
+.sam-word{transition:opacity .2s}
+.sam-word.cut{opacity:.28}
+.sam-word.cut .bar-fill{background:#B9C4D2!important}
+.sam-out{font-family:var(--serif);font-weight:900;font-size:1.1rem;min-height:2.2em;margin-top:10px;line-height:2}
+.sam-out .tok{display:inline-block;background:var(--marker-soft);border-radius:6px;padding:0 8px;margin:2px}
+.kv-row{display:grid;grid-template-columns:9.5em 1fr 8em;gap:10px;align-items:center;margin:10px 0}
+.kv-row .kl{font-size:.88rem;font-weight:600}
+.kv-row .kv-n{font-family:var(--mono);font-size:.88rem;text-align:right}
+.win-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.win-chip{border:1.5px solid var(--ink);background:var(--card);border-radius:8px;padding:3px 10px;font-size:.85rem;transition:all .2s}
+.win-chip.out{opacity:.25;border-style:dashed;text-decoration:line-through}
+</style>
+</head>
+<body data-prog-total="8">
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">从接龙到助手</span>
+    <a class="nav-chip" href="#c1" data-nav="c1">1 三阶段驯化</a>
+    <a class="nav-chip" href="#c2" data-nav="c2">2 采样</a>
+    <a class="nav-chip" href="#c3" data-nav="c3">3 上下文与缓存</a>
+    <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
+    <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
+    <a class="nav-chip" href="#c8" data-nav="c8">彩蛋</a>
+    <span class="nav-chip" id="navProg">掌握 0/8</span>
+  </div>
+  <div class="series-in">
+    <a class="sbook" href="index.html">📖 总目录</a>
+    <a class="sbook" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook cur" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <h1>预训练结束时,你得到的<br>不是助手,是一台<span class="hl">接龙机器</span>。</h1>
+  <p class="lead">前三册装好的那台机器读完了半个互联网——但它只会一件事:续写。你问"什么是黑洞?",它可能接"这是本次期末考试的第三题"。从接龙机器到 ChatGPT,还差三步驯化(本册第一课)和一套推理工程(第二、三课)。</p>
+  <p class="note">前置:第一册。第二、三册没读也能看懂本册,但读过会更通透。</p>
+</header>
+
+<!-- ======================== 第一课 三阶段驯化 ======================== -->
+<section class="chapter" id="c1">
+  <div class="ch-head"><span class="ch-no">第一课</span><h2>三阶段驯化:预训练 → SFT → RLHF</h2><span class="en">pretrain · SFT · RLHF</span></div>
+  <p class="ch-lede">同一台机器,三段完全不同的"教育"。注意:三个阶段用的都是你在第一册学过的那套训练循环——变的只是<b>喂什么数据、奖励什么行为</b>。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>同一个问题,问三个阶段的同一个模型</h3>
+    <div class="widget">
+      <div class="stage3" id="st3Row"></div>
+      <div class="chatbox">
+        <div class="chat-q">🧑 什么是黑洞?</div>
+        <div id="st3Tag"></div>
+        <div class="chat-a" id="st3A"></div>
+      </div>
+      <div class="gd-msg" id="st3Msg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">规 则</span>
+    <h3>三阶段各自在优化什么</h3>
+    <div class="fbox">
+      <div class="formula" style="font-size:clamp(.95rem,2.3vw,1.2rem);font-family:var(--sans);line-height:2.2;text-align:left;max-width:640px;margin:0 auto">
+        ① <span class="term" data-g="s3-pre" data-tip="<b>预训练</b>:几万亿 token 的网页/书籍/代码,目标=预测下一个词(第一册全套)。产出:懂语言、懂世界,但只会续写的 base model">预训练</span>:在海量文本上预测下一个词 → 学会<b>语言和世界</b><br>
+        ② <span class="term" data-g="s3-sft" data-tip="<b>SFT(监督微调)</b>:几万~几十万条人写的「问题→优质回答」对话,还是'预测下一个词',但下一个词来自示范回答——模型学会了'见到问题要作答'这个格式">SFT 微调</span>:在人写的示范对话上继续训练 → 学会<b>对话的样子</b><br>
+        ③ <span class="term" data-g="s3-rlhf" data-tip="<b>RLHF(人类反馈强化学习)</b>:模型对同一问题生成多个回答,人类排序,训练一个'评分模型',再用它当罚分函数继续调参数——梯度下降不变,只是 loss 从'接得像'换成了'人类更喜欢'">RLHF 对齐</span>:人类给回答排序,好评当奖励 → 学会<b>人类的偏好</b>
+      </div>
+      <div class="tip">把鼠标移到三个阶段名上试试 →</div>
+      <div class="fnote">数据量对比感受一下:预训练 ~ <b>数万亿</b> token;SFT ~ <b>几十万</b>条对话;RLHF ~ <b>几十万</b>次人类排序。能力的 99% 来自预训练;后两步不教新知识,只是把已有能力<b>引导成"有用的助手"这个人格</b>。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">这也解释了几件日常观察:模型会礼貌拒答(RLHF 教的);"越狱"提示词试图唤回的正是 base model 的接龙本能;模型有时"讨好式附和"(sycophancy)——因为 RLHF 奖励的是<b>人类觉得好</b>,而人类偏爱顺耳的话。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary><div class="pynote">点「▶ 运行」在浏览器里真跑(首次需联网下载引擎,约 10~20 秒);也可复制到本地。只用标准库。</div>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson1_sft.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math, random
+random.seed(0)
+
+def train(corpus, W=None, epochs=60):          # 第一册的训练循环,原封不动
+    global vocab, idx, n
+    vocab = sorted(set(corpus)); n = len(vocab)
+    idx = {w: i for i, w in enumerate(vocab)}
+    W = W or [[random.uniform(-.1, .1) for _ in range(n)] for _ in range(n)]
+    for _ in range(epochs):
+        for a, b in zip(corpus[:-1], corpus[1:]):
+            ex = [math.exp(v) for v in W[idx[a]]]; s = sum(ex)
+            for j in range(n):
+                W[idx[a]][j] -= .5 * (ex[j]/s - (1 if j == idx[b] else 0))
+    return W
+
+def ask(W, prompt, steps=4):
+    w, out = prompt[-1], list(prompt)
+    for _ in range(steps):
+        p = W[idx[w]]
+        w = vocab[p.index(max(p))]; out.append(w)
+    return " ".join(out)
+
+# 阶段①预训练:语料里"问题后面跟着的是另一个问题"(像试卷)
+base = train("问 黑洞 是 什么 ? 问 恒星 是 什么 ? 问 光年 是 什么 ?".split())
+print("base 模型 :", ask(base, ["黑洞", "是", "什么", "?"]))
+
+# 阶段②SFT:继续用同一循环,但喂"问题→回答"格式的示范
+sft = train("黑洞 是 什么 ? 答 : 引力 极强 的 天体".split(), W=None)
+print("SFT 之后  :", ask(sft, ["黑洞", "是", "什么", "?"], steps=6))
+# 同一套公式,喂不同数据 → 从"反问你"变成"回答你"。这就是微调的全部。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q1" data-fbok="正确——它只是忠实地续写:训练语料里,问题后面最常跟着的往往是另一个问题或评论,而不是答案。" data-fbbad="回想 base model 的唯一目标:预测下一个词。互联网文本里,问题后面通常跟着什么?">
+      <h3>base 模型被问"什么是黑洞?"时常常反问或跑题,因为?</h3><button class="q-opt" data-ok="0">它不知道黑洞是什么</button><button class="q-opt" data-ok="1">它只会续写:网上的问题后面未必跟着答案,它接的是"最像下文"的内容</button><button class="q-opt" data-ok="0">它在保护隐私</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第一课 → 第二课</span>
+  <h3>驯化完成——现在它每一步都在吐一排概率,该怎么挑词?</h3>
+  <p>第一册第一课结尾说"从概率里挑一个词",第四课的实验里你手动挑过,彩蛋里用的是"永远挑最大"(贪心)。但真实的 ChatGPT 每次回答都不一样——说明它<b>不是</b>在挑最大。挑词这件小事,直接决定了模型是"复读机"还是"话痨"。</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第二课 采样 ======================== -->
+<section class="chapter" id="c2">
+  <div class="ch-head"><span class="ch-no">第二课</span><h2>采样:每一个字,都是一次掷骰子</h2><span class="en">temperature · top-p</span></div>
+  <p class="ch-lede">模型输出的是概率分布,不是答案。<b>温度 T</b>(第一册第一课的老朋友)决定骰子有多"偏",<b>top-p</b> 决定哪些词有资格上骰子。两个旋钮,就是 API 里那两个真实参数。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>调旋钮,然后真的掷几次骰子</h3>
+    <div class="widget">
+      <div class="w-grid">
+        <div>
+          <div class="slider-row"><label>温度 T</label><input type="range" id="samT" min="0.1" max="5" step="0.1" value="1.0"><span class="val" id="samTv">1.0</span></div>
+          <div class="slider-row"><label>top-p</label><input type="range" id="samP" min="0.3" max="1" step="0.05" value="0.9"><span class="val" id="samPv">0.90</span></div>
+          <div class="btn-row">
+            <button class="btn" id="samGo">🎲 掷 12 次骰子</button>
+          </div>
+          <div class="sam-out" id="samOut"><span class="small">「今天天气很 ___」——先看右边的候选池,再掷骰子。</span></div>
+          <div class="gd-msg" id="samMsg"></div>
+        </div>
+        <div>
+          <div class="w-title">候选词概率(灰色 = 被 top-p 踢出骰子)</div>
+          <div id="samBars"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>top-p 的规则,一句话</h3>
+    <div class="fbox" id="samF">
+      <div class="formula" style="font-size:clamp(1.02rem,2.5vw,1.35rem);font-family:var(--sans)">
+        把词按概率<span class="term" data-g="sp-sort" data-tip="<b>从大到小排序</b>:最有把握的词排前面">从大到小排</span>,<span class="term" data-g="sp-acc" data-tip="<b>累加概率</b>:0.45 + 0.25 + 0.15 + … 一路加过去">依次累加</span>,加到刚超过 <span class="term" data-g="sp-p" data-tip="<b>p(如 0.9)</b>:'核'的大小。留下的这批词合计约 90% 的概率质量,所以也叫核采样(nucleus sampling)">p</span> 就<span class="term" data-g="sp-cut" data-tip="<b>截断</b>:后面的长尾词概率再小也可能被抽中,截掉它们能避免偶发的离谱词;留下的词重新归一化后掷骰子">截断</span>,只在留下的词里掷骰子
+      </div>
+      <div class="tip" id="samTip">把鼠标移到规则的某一部分上试试 →</div>
+      <div class="fnote">和温度的分工:<b>T 改变骰子的偏心程度</b>(第一册第一课:分数先 ÷T 再 softmax),<b>top-p 决定谁有资格上骰子</b>。T=0 等价于"永远挑最大"(贪心)——同一个问题每次答案完全一样。生成何时停?词表里有个特殊 token(如 <code>&lt;|endoftext|&gt;</code>),模型学会在该结束时给它高概率——"闭嘴"也是预测出来的。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>口算一次 top-p 截断</h3>
+    <div class="verify">
+      四个候选词概率:0.50、0.30、0.15、0.05,top-p = 0.9:<br>
+      <span class="mono">0.50 → 0.50+0.30=0.80 → 0.80+0.15=0.95 ≥ 0.9,停</span> —— 前三个词入围,最后那个 5% 的词被踢出。
+      <div class="try" data-exp="3" data-tol="0.01" data-key="t1"><span>✍️ 轮到你:概率 0.6、0.2、0.1、0.1,top-p=0.85,几个词入围?</span><input type="number" step="1" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">API 文档里的 <span class="mono">temperature=0.7, top_p=0.9</span> 就是这两个旋钮。写代码、做数学 → 调低 T(要确定性);头脑风暴、写诗 → 调高 T(要多样性)。"同一个问题问两遍答案不同"不是 bug,是骰子在工作。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson2_sampling.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math, random
+random.seed(42)
+
+words  = ["好", "不错", "冷", "热", "刺激", "猫"]
+logits = [2.0, 1.2, 0.8, 0.3, -0.5, -2.0]      # 模型刚算完的分数
+
+def softmax(z, T=1.0):
+    ex = [math.exp(v / T) for v in z]; s = sum(ex)
+    return [e / s for e in ex]
+
+def top_p_sample(T=1.0, top_p=0.9):
+    p = softmax(logits, T)
+    ranked = sorted(zip(words, p), key=lambda x: -x[1])
+    kept, acc = [], 0.0
+    for w, q in ranked:                        # 累加到刚超过 top_p 就截断
+        kept.append((w, q)); acc += q
+        if acc >= top_p: break
+    r, acc = random.random() * sum(q for _, q in kept), 0.0
+    for w, q in kept:
+        acc += q
+        if r <= acc: return w
+    return kept[-1][0]
+
+for T in [0.3, 1.0, 2.0]:
+    print(f"T={T}   15 次采样:", " ".join(top_p_sample(T) for _ in range(15)))
+# T=0.3 几乎全是"好";T=2.0 五花八门——你的 ChatGPT 温度旋钮,就是它。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q2" data-fbok="正确——T→0 时最高分词的概率被推向 100%,等价于贪心,每次输出完全一样。" data-fbbad="回想第一册第一课:T 变小,softmax 的分布变得多极端?">
+      <h3>把 temperature 设为 0(或接近 0),同一个问题问十遍会?</h3><button class="q-opt" data-ok="1">十遍答案几乎完全一样——等价于每步都挑最大概率</button><button class="q-opt" data-ok="0">答案更多样,因为模型更"冷静"</button><button class="q-opt" data-ok="0">模型拒绝回答</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第二课 → 第三课</span>
+  <h3>骰子会掷了——但接龙每走一步,前文就长一截</h3>
+  <p>第一册第四课说过:挑中的词要<b>接回输入</b>,再算下一个。这意味着生成第 1000 个词时,Attention 要面对 999 个前文词。计算量怎么不爆炸?对话太长时又会发生什么?</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第三课 上下文窗口与 KV 缓存 ======================== -->
+<section class="chapter" id="c3">
+  <div class="ch-head"><span class="ch-no">第三课</span><h2>上下文窗口与 KV 缓存:长对话的物理极限</h2><span class="en">context window · KV cache</span></div>
+  <p class="ch-lede">两件事决定了聊天体验的"物理规律":<b>KV 缓存</b>让逐词生成快得起来,<b>上下文窗口</b>决定模型最多能"看见"多少字。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩 ①</span>
+    <h3>不缓存 vs 缓存:拖动"已生成的词数",看计算量差多少</h3>
+    <div class="widget">
+      <div class="slider-row" style="max-width:460px"><label>已生成 n 词</label><input type="range" id="kvN" min="10" max="500" step="10" value="100"><span class="val" id="kvNv">100</span></div>
+      <div class="kv-row"><span class="kl">🐌 每词重算全部前文</span><div class="bar-track"><div class="bar-fill" id="kvB1" style="background:#D1495B"></div></div><span class="kv-n" id="kvV1"></span></div>
+      <div class="kv-row"><span class="kl">⚡ 缓存每个词的 K/V</span><div class="bar-track"><div class="bar-fill" id="kvB2"></div></div><span class="kv-n" id="kvV2"></span></div>
+      <div class="gd-msg" id="kvMsg"></div>
+      <p class="small" style="margin-top:8px">原理:第一册第五课里,每个词的 K 和 V 算好之后<b>永远不变</b>——那就存起来!新词只需算自己的 Q/K/V,再和缓存里的所有 K 做点积。代价:缓存占显存,这就是长上下文昂贵的原因。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩 ②</span>
+    <h3>窗口装满之后:最早的话被"挤出窗外"</h3>
+    <div class="widget">
+      <div class="w-title">假设窗口只装得下 6 条消息,对话进行到第 <span id="winNow">6</span> 条</div>
+      <div class="slider-row" style="max-width:460px"><label>对话进度</label><input type="range" id="winN" min="6" max="14" step="1" value="6"><span class="val" id="winNv">6</span></div>
+      <div class="win-chips" id="winChips"></div>
+      <div class="gd-msg" id="winMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">"128k 上下文"就是窗口大小(单位:token,第二册第一课)。长对话里模型"忘了开头"不是记性差,是开头<b>物理上不在输入里了</b>(或被摘要压缩过)。窗口内的内容也不是平等的——太长时中间部分的注意力常被稀释("lost in the middle")。每次新请求,模型都是<b>从零读一遍窗口内的全部内容</b>:它没有"记忆",只有"眼前这一屏"。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson3_kvcache.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode"># 生成第 t 个词时,Attention 要做 t 次"Q·K 点积"
+# 不缓存:每一步都重算前面所有词的 K/V → 总点积数 = 1+2+...+n
+# 缓 存:老词的 K/V 存着不动,每步只算新增的一行
+
+for n in [10, 100, 1000, 10000]:
+    no_cache = n * (n + 1) * (n + 2) // 6      # 每步重算全部历史(累计)
+    cached   = n * (n + 1) // 2                # 每步只加一行
+    print(f"生成 {n:>6} 词   不缓存 ≈ {no_cache:>16,}   缓存 ≈ {cached:>12,}   省 {no_cache//cached} 倍")
+# 生成一万词时差一万倍——没有 KV 缓存,就没有流畅的 ChatGPT。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q3" data-fbok="正确——不在窗口里的内容对模型等于不存在,它每次都只读'眼前这一屏'。" data-fbbad="回看动手玩②:被挤出窗口的消息去哪了?">
+      <h3>聊了三小时后模型"忘了"你最开始说的话,根本原因是?</h3><button class="q-opt" data-ok="0">模型的参数把它遗忘了</button><button class="q-opt" data-ok="1">开头的内容已不在上下文窗口内——输入里没有,等于不存在</button><button class="q-opt" data-ok="0">KV 缓存溢出导致数据损坏</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 总装 ======================== -->
+<section class="chapter" id="c6">
+  <div class="ch-head"><span class="ch-no">总 装</span><h2>你每按一次发送,完整发生的事</h2><span class="en">one chat turn</span></div>
+  <p class="ch-lede">把本册装回前三册,一次真实的 ChatGPT 交互全流程:</p>
+  <div class="asm" style="flex-direction:column;align-items:stretch">
+    <button class="asm-node"><div class="an">STEP 1 · 第二册</div><div class="at">你的消息 + 窗口内的历史 → token → 向量</div><div class="ad">分词、查表、加位置——整个窗口的内容一起进</div></button>
+    <button class="asm-node"><div class="an">STEP 2 · 第三册 + 第一册</div><div class="at">96 层 Attention+FFN → 打分 → softmax</div><div class="ad">这台机器已被 SFT/RLHF 驯化过(本册第一课),给"有帮助的回答"高概率</div></button>
+    <button class="asm-node"><div class="an">STEP 3 · 本册第二课</div><div class="at">温度 + top-p 掷骰子,选出一个 token</div><div class="ad">这就是你看到的"蹦出一个字"</div></button>
+    <button class="asm-node"><div class="an">STEP 4 · 本册第三课 + 第一册第四课</div><div class="at">新 token 接回输入(K/V 进缓存),回到 STEP 2</div><div class="ad">循环,直到掷出"结束"token——回答完毕</div></button>
+  </div>
+  <p class="loop-note">整个过程<b>没有任何参数被更新</b>——推理不学习。你教它的东西,出了这个窗口就消失了。</p>
+</section>
+
+<!-- ======================== 毕业测验 ======================== -->
+<section class="chapter" id="c7">
+  <div class="ch-head"><span class="ch-no">毕 业</span><h2>迁移测验:换个场景,你还会吗</h2><span class="en">transfer test</span></div>
+  <p class="ch-lede">四题全对,助手学毕业:</p>
+  <div class="w-grid">
+    <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="预训练教知识,SFT 教格式,RLHF 教偏好——礼貌拒绝是哪种?">
+      <h3>① 模型礼貌地拒绝写钓鱼邮件,这个行为主要来自?</h3><button class="q-opt" data-ok="0">预训练语料里没有钓鱼邮件</button><button class="q-opt" data-ok="1">RLHF:人类反馈把"拒绝有害请求"训成了高奖励行为</button><button class="q-opt" data-ok="0">分词器过滤了敏感词</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="写代码要的是确定和精准——骰子该偏还是该平?">
+      <h3>② 让模型帮你生成严格的 JSON 配置,应该?</h3><button class="q-opt" data-ok="1">调低 temperature(甚至 0)——要确定性,不要创意</button><button class="q-opt" data-ok="0">调高 temperature——让它多想几种可能</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="推理时参数更新吗?总装最后一行。">
+      <h3>③ 你在对话里纠正了模型一个错误,明天新开对话它还会犯,因为?</h3><button class="q-opt" data-ok="1">推理不更新参数——你的纠正只活在那个窗口里</button><button class="q-opt" data-ok="0">模型故意不听</button><button class="q-opt" data-ok="0">纠正被 top-p 截断了</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="KV 缓存存的是每个前文词的 K/V,窗口越长缓存越大。">
+      <h3>④ 长上下文(如 128k)服务更贵,直接的工程原因是?</h3><button class="q-opt" data-ok="0">长文本要用更大的模型</button><button class="q-opt" data-ok="1">窗口越长,KV 缓存占的显存和每步点积越多</button><div class="q-fb"></div></div>
+  </div>
+  <div class="verify" id="gradBox" data-done="🎓 毕业!从驯化到掷骰子到窗口——ChatGPT 在你眼里已经没有魔法,只有机制。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
+</section>
+
+<!-- ======================== 彩蛋 ======================== -->
+<section class="chapter" id="c8">
+  <div class="ch-head"><span class="ch-no">彩 蛋</span><h2>给第一册的玩具模型装上骰子</h2><span class="en">toy model, now with dice</span></div>
+  <p class="ch-lede">还是那个玩具模型,这次不再"永远挑最大",而是装上本册的温度 + top-p 采样器。跑一次,看同一个模型在三种温度下的三副面孔。</p>
+  <div class="pyblock">
+    <div class="pyhead"><span class="pl">chat_toy_llm.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+    <pre class="pycode">import math, random
+random.seed(7)
+
+# ── 先用第一册的方法,训练同一个玩具模型 ─────────────────
+corpus = ("今天 天气 很 好 。 今天 天气 很 冷 。 明天 天气 很 好 。 "
+          "今天 心情 很 好 。 明天 心情 很 不错 。").split()
+vocab = sorted(set(corpus)); n = len(vocab)
+idx = {w: i for i, w in enumerate(vocab)}
+W = [[random.uniform(-0.1, 0.1) for _ in range(n)] for _ in range(n)]
+
+def softmax(z, T=1.0):
+    ex = [math.exp(v / T) for v in z]; s = sum(ex)
+    return [e / s for e in ex]
+
+for _ in range(80):
+    for prev, nxt in zip(corpus[:-1], corpus[1:]):
+        p = softmax(W[idx[prev]])
+        for j in range(n):
+            W[idx[prev]][j] -= 0.5 * (p[j] - (1 if j == idx[nxt] else 0))
+
+# ── 本册新增:带温度 + top-p 的采样器 ────────────────────
+def sample(w, T=1.0, top_p=0.95):
+    p = softmax(W[idx[w]], T)
+    ranked = sorted(zip(vocab, p), key=lambda x: -x[1])
+    kept, acc = [], 0.0
+    for tok, q in ranked:                      # 概率从大到小累加,超过 top_p 截断
+        kept.append((tok, q)); acc += q
+        if acc >= top_p: break
+    r, acc = random.random() * sum(q for _, q in kept), 0.0
+    for tok, q in kept:
+        acc += q
+        if r <= acc: return tok
+    return kept[-1][0]
+
+def generate(T):
+    w, sent = "今天", ["今天"]
+    for _ in range(6):
+        w = sample(w, T)
+        sent.append(w)
+        if w == "。": break                     # 「。」就是它的"结束 token"
+    return " ".join(sent)
+
+for T in [0.2, 1.0, 3.0]:
+    print(f"T={T}")
+    for _ in range(3):
+        print("  ", generate(T))</pre>
+    <pre class="pyout" hidden></pre>
+  </div>
+  <div class="backline" style="margin-top:16px">观察输出:T=0.2 三次几乎一模一样(复读机);T=1.0 在几个合理句子间切换;T=3.0 开始胡言乱语——语法崩坏的样子,和真实大模型把温度拉满时如出一辙。再试试把 <span class="mono">top_p</span> 改成 0.5,高温也会被"资格审查"拉回正轨。</div>
+</section>
+
+<div class="bridge next-book">
+  <span class="btag">下一册</span>
+  <h3>第五册 · 边界与真相:规模、幻觉与"它到底是什么"</h3>
+  <p>机制全部讲完了。最后一册回答三个大问题:为什么"大"本身就是魔法(scaling law)?为什么它会一本正经地胡说八道(幻觉的机制根源)?以及——它到底是数据库、搜索引擎,还是别的什么东西?这一册决定你<b>该信它几分</b>。</p>
+  <a class="btn" href="05-limits.html">进入第五册 →</a>
+  <div class="nb-from">← 或回到 <a href="03-transformer.html">第三册 · 拆开整机</a> / <a href="index.html">总目录</a></div>
+</div>
+
+<footer>看懂大模型 · 第四册 从接龙到助手 —— 所有计算都在你的浏览器里实时进行。</footer>
+</main>
+
+<script src="assets/common.js"></script>
+<script>
+/* ==================== 第一课 三阶段 ==================== */
+const ST3=[
+ {k:'base',n:'阶段 ① 预训练',t:'base 模型 · 接龙机器',d:'数万亿 token 网页书籍 · 数月 · 数千万美元',
+  tag:['#FBEAED','#D1495B','🦣 base 模型(只会续写)'],
+  a:'这是本次天文学期末考试的第三题,满分 10 分。\n第四题:什么是中子星?\n第五题:简述哈勃定律……',
+  m:'它不是不懂黑洞——它是在忠实续写:训练语料里,这样的问题最常出现在试卷里,后面跟着的是更多题目。'},
+ {k:'sft',n:'阶段 ② SFT 微调',t:'学会"对话"这个格式',d:'几十万条人写的示范问答 · 几天',
+  tag:['#FFF3B8','#8A6D00','📝 SFT 之后(会回答了)'],
+  a:'黑洞是一种引力极强的天体,强到连光都无法逃脱。它由大质量恒星坍缩形成,边界称为"事件视界"。',
+  m:'同一套训练循环,换成「问题→优质回答」的数据继续跑——模型学会了:见到问题,接的应该是答案。'},
+ {k:'rlhf',n:'阶段 ③ RLHF 对齐',t:'学会人类的偏好',d:'几十万次人类对回答的排序 · 持续进行',
+  tag:['#E4F1F0','#0A5A59','🤝 RLHF 之后(好用且有分寸)'],
+  a:'黑洞是引力极强的天体,连光都逃不出去——可以想象成"宇宙里的单行道入口"。\n\n几个关键点:\n· 由大质量恒星坍缩形成\n· 边界叫事件视界,过界即无法返回\n\n想深入了解哪部分?我可以展开讲讲。',
+  m:'人类给不同回答排序,"清晰、有帮助、有分寸"的回答获得高奖励。回答变得体贴——同时也学会了拒绝有害请求。'}];
+function st3Render(k){
+  $('#st3Row').innerHTML=ST3.map(s=>
+    `<button class="st3${s.k===k?' sel':''}" data-k="${s.k}"><span class="sn3">${s.n}</span><div class="st3t">${s.t}</div><div class="st3d">${s.d}</div></button>`).join('');
+  $$('#st3Row .st3').forEach(b=>b.addEventListener('click',()=>st3Render(b.dataset.k)));
+  const s=ST3.find(x=>x.k===k);
+  $('#st3Tag').innerHTML=`<span class="chat-tag" style="background:${s.tag[0]};color:${s.tag[1]}">${s.tag[2]}</span>`;
+  $('#st3A').textContent=s.a;
+  $('#st3Msg').textContent=s.m;
+}
+st3Render('base');
+
+/* ==================== 第二课 采样 ==================== */
+const SAM_W=['好','不错','冷','热','刺激','猫'];
+const SAM_Z=[2.0,1.2,0.8,0.3,-0.5,-2.0];
+function samDist(){
+  const T=+$('#samT').value;
+  const ex=SAM_Z.map(z=>Math.exp(z/T)),s=ex.reduce((a,b)=>a+b,0);
+  const p=ex.map(e=>e/s);
+  const topP=+$('#samP').value;
+  const order=p.map((q,i)=>i).sort((a,b)=>p[b]-p[a]);
+  const kept=new Set(); let acc=0;
+  for(const i of order){ kept.add(i); acc+=p[i]; if(acc>=topP) break; }
+  return {p,kept};
+}
+function samRender(){
+  const T=+$('#samT').value,topP=+$('#samP').value;
+  $('#samTv').textContent=f2(T,1); $('#samPv').textContent=f2(topP);
+  const {p,kept}=samDist();
+  $('#samBars').innerHTML=SAM_W.map((w,i)=>
+    `<div class="bar-row sam-word${kept.has(i)?'':' cut'}"><span class="w">${w}</span>
+     <div class="bar-track"><div class="bar-fill" style="width:${p[i]*100}%"></div></div>
+     <span class="pv">${(p[i]*100).toFixed(1)}%</span></div>`).join('');
+  $('#samMsg').textContent =
+    T<=0.3?'低温:骰子极偏,基本只出最高分词——接近"贪心"。':
+    T>=2.5?'高温:骰子被抹平,长尾词也有机会——top-p 此时是最后的安全网。':
+    `温度适中。当前有 ${kept.size} 个词入围骰子(合计约 ${(SAM_W.reduce((a,_,i)=>a+(kept.has(i)?p[i]:0),0)*100).toFixed(0)}% 概率)。`;
+}
+$('#samT').addEventListener('input',samRender);
+$('#samP').addEventListener('input',samRender);
+$('#samGo').addEventListener('click',()=>{
+  const {p,kept}=samDist();
+  const pool=[...kept],tot=pool.reduce((a,i)=>a+p[i],0);
+  const draws=[];
+  for(let k=0;k<12;k++){
+    let r=Math.random()*tot,acc=0,pick=pool[0];
+    for(const i of pool){acc+=p[i];if(r<=acc){pick=i;break;}}
+    draws.push(SAM_W[pick]);
+  }
+  $('#samOut').innerHTML='今天天气很 → '+draws.map(w=>`<span class="tok">${w}</span>`).join('');
+});
+samRender();
+
+/* ==================== 第三课 KV & 窗口 ==================== */
+function kvRender(){
+  const n=+$('#kvN').value;
+  $('#kvNv').textContent=n;
+  const no=n*(n+1)*(n+2)/6, yes=n*(n+1)/2;
+  $('#kvB1').style.width='100%';
+  $('#kvB2').style.width=Math.max(yes/no*100,0.5)+'%';
+  $('#kvV1').textContent=no.toLocaleString()+' 次点积';
+  $('#kvV2').textContent=yes.toLocaleString()+' 次点积';
+  $('#kvMsg').textContent=`生成 ${n} 个词:缓存把计算量降到 1/${Math.round(no/yes)}。窗口越长,这条绿条省下的越多——但缓存本身吃显存。`;
+}
+$('#kvN').addEventListener('input',kvRender);
+kvRender();
+
+const WIN_MSGS=['①你好,帮我起个店名','②好的!几个方向…','③要日式风格的','④那试试"青盐食堂"…','⑤再多来几个','⑥"木鱼小馆"…','⑦预算说一下','⑧装修预算建议…','⑨结合我说过的风格','⑩(风格=?)','⑪你忘了吗?','⑫抱歉,请再说一次风格','⑬……','⑭……'];
+function winRender(){
+  const n=+$('#winN').value,W=6;
+  $('#winNv').textContent=n; $('#winNow').textContent=n;
+  $('#winChips').innerHTML=WIN_MSGS.slice(0,n).map((m,i)=>
+    `<span class="win-chip${i<n-W?' out':''}">${m}</span>`).join('');
+  $('#winMsg').textContent =
+    n<=W?'窗口还没满,一切安好。继续拖。':
+    n<=9?`第 ${n-W} 条消息已被挤出窗口——模型的"眼前"里,它不存在了。`:
+    '「日式风格」那条早就出窗了:模型不是忘了,是真的看不见——只能尴尬地请你再说一遍。';
+}
+$('#winN').addEventListener('input',winRender);
+winRender();
+</script>
+</body>
+</html>

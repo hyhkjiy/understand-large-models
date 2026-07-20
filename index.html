@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>看懂大模型 · 交互式零基础五册</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.map-flow{display:flex;flex-direction:column;gap:0;margin-top:20px}
+.map-band{border:1.5px solid var(--ink);border-radius:12px;background:var(--card);padding:14px 18px;box-shadow:3px 3px 0 rgba(31,43,62,.14);text-decoration:none;color:var(--ink);display:block;transition:transform .15s}
+.map-band:hover{transform:translateY(-3px)}
+.map-band .mb-book{font-family:var(--mono);font-size:.7rem;color:var(--teal-d);letter-spacing:.1em;font-weight:700}
+.map-band .mb-t{font-family:var(--serif);font-weight:900;font-size:1.08rem;margin:2px 0}
+.map-band .mb-d{font-size:.84rem;color:var(--sub);line-height:1.6}
+.map-arrow{text-align:center;color:var(--teal);font-weight:900;font-size:1.3rem;line-height:1.9}
+.map-band.train{border-style:dashed;background:var(--red-bg);border-color:var(--red)}
+.map-band.train .mb-book{color:var(--red)}
+.books{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:22px}
+.bk{background:var(--card);border:1.5px solid var(--ink);border-radius:14px;padding:20px;box-shadow:4px 4px 0 rgba(31,43,62,.13);display:flex;flex-direction:column;transition:transform .15s;position:relative}
+.bk:hover{transform:translateY(-4px)}
+.bk .bk-no{font-family:var(--mono);font-size:.7rem;color:var(--sub);letter-spacing:.14em}
+.bk h3{font-family:var(--serif);font-weight:900;font-size:1.25rem;margin:4px 0 6px}
+.bk .bk-q{font-size:.88rem;color:var(--teal-d);font-weight:700;margin-bottom:10px}
+.bk ul{list-style:none;margin:0 0 14px;flex:1}
+.bk li{font-size:.86rem;color:var(--sub);padding:3px 0 3px 1.3em;position:relative}
+.bk li::before{content:"·";position:absolute;left:.4em;color:var(--teal);font-weight:900}
+.bk .btn{text-decoration:none;text-align:center}
+.bk.start::after{content:"从这里开始";position:absolute;top:-12px;right:14px;background:var(--marker);color:var(--ink);border-radius:999px;padding:2px 12px;font-size:.72rem;font-weight:700}
+.routes{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:16px}
+.route{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.route h4{font-family:var(--serif);font-weight:900;font-size:1rem;margin-bottom:6px}
+.route .rt{font-family:var(--mono);color:var(--teal-d);font-size:.95rem;font-weight:700;margin-bottom:6px}
+.route p{font-size:.84rem;color:var(--sub)}
+.promise{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}
+.pm{flex:1;min-width:200px;background:var(--teal-bg);border-radius:10px;padding:12px 16px;font-size:.88rem}
+.pm b{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">看懂大模型</span>
+    <a class="nav-chip" href="#map" data-nav="map">知识地图</a>
+    <a class="nav-chip" href="#books" data-nav="books">五册目录</a>
+    <a class="nav-chip" href="#routes" data-nav="routes">学习路线</a>
+  </div>
+  <div class="series-in">
+    <a class="sbook cur" href="index.html">📖 总目录</a>
+    <a class="sbook" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <h1>看懂大模型,<br>只需要<span class="hl">亲手玩坏它的每一个零件</span>。</h1>
+  <p class="lead">一套零基础交互丛书,五册,几十个可以拖、可以点、可以玩坏的实验,外加一路陪你长大的玩具模型——从第一册的一张查表,到最后真的开口说话。不需要任何数学基础:每个公式都在你亲手发现规律<b>之后</b>才登场。</p>
+  <div class="promise">
+    <div class="pm"><b>🎛 先玩后学</b>每课先拨滑块做实验,公式只是把你发现的规律写短一点</div>
+    <div class="pm"><b>🐍 全程可验证</b>每课配 10 行左右的 Python,页内一键运行,不装环境</div>
+    <div class="pm"><b>🧸 一只玩具模型</b>同一个小模型贯穿五册:训练它、解剖它、驯化它、逼它产生幻觉</div>
+  </div>
+</header>
+
+<!-- ======================== 知识地图 ======================== -->
+<section class="chapter" id="map">
+  <div class="ch-head"><span class="ch-no">全 景</span><h2>知识地图:一个字从进去到出来</h2><span class="en">the map</span></div>
+  <p class="ch-lede">你在 ChatGPT 按下发送后发生的一切,按顺序排开就是这套丛书。点任何一段直接跳进对应册:</p>
+  <div class="map-flow">
+    <a class="map-band" href="02-tokens.html">
+      <span class="mb-book">第二册 · 输入端</span>
+      <div class="mb-t">文字 → token → 向量 → +位置</div>
+      <div class="mb-d">分词(BPE)把文字切成块,Embedding 给每块发一张"含义坐标",位置编码把"第几个"也写进向量</div>
+    </a>
+    <div class="map-arrow">↓</div>
+    <a class="map-band" href="03-transformer.html">
+      <span class="mb-book">第三册 · 主体(× 96 层)</span>
+      <div class="mb-t">多头 Attention 搬运 + FFN 加工,残差保证堆得起来</div>
+      <div class="mb-d">Attention 让词与词互相看见(第一册第五课),多个头各司其职;前馈网络(隐藏层)负责"思考";残差直通道让几十层不塌楼</div>
+    </a>
+    <div class="map-arrow">↓</div>
+    <a class="map-band" href="01-formulas.html">
+      <span class="mb-book">第一册 · 输出端与训练闭环</span>
+      <div class="mb-t">打分 → Softmax → 概率;训练 = 罚分 → 求坡 → 微调</div>
+      <div class="mb-d">五个公式的完整闭环:softmax、交叉熵、梯度下降、自回归、attention——全系列的地基,从这里开始</div>
+    </a>
+    <div class="map-arrow">↓</div>
+    <a class="map-band" href="04-assistant.html">
+      <span class="mb-book">第四册 · 变成助手</span>
+      <div class="mb-t">SFT/RLHF 驯化 + 温度/top-p 掷骰子 + 上下文窗口</div>
+      <div class="mb-d">接龙机器如何被教会"好好说话";每个字如何被采样出来;为什么长对话会"忘了开头"</div>
+    </a>
+    <div class="map-arrow">↓</div>
+    <a class="map-band train" href="05-limits.html">
+      <span class="mb-book">第五册 · 边界</span>
+      <div class="mb-t">规模的幂律 · 幻觉的必然 · 模型 ≠ 数据库</div>
+      <div class="mb-d">为什么"大"本身就是配方,为什么它一本正经地胡说,以及它到底是什么——决定你该信它几分</div>
+    </a>
+  </div>
+  <p class="loop-note" style="margin-top:16px">另有一条贯穿全程的暗线:<b>反向传播</b>(第三册第四课)把罚分的坡度沿这条流水线反向送回每一个参数——训练与推理,共用同一张地图。</p>
+</section>
+
+<!-- ======================== 五册目录 ======================== -->
+<section class="chapter" id="books">
+  <div class="ch-head"><span class="ch-no">目 录</span><h2>五册,每册回答一个问题</h2><span class="en">the five books</span></div>
+  <div class="books">
+    <div class="bk start">
+      <span class="bk-no">BOOK 1 · 必修</span>
+      <h3>五个公式</h3>
+      <div class="bk-q">模型是怎么学会接龙的?</div>
+      <ul>
+        <li>Softmax:分数 → 概率</li>
+        <li>交叉熵:给预测打分的裁判</li>
+        <li>梯度下降:蒙着眼下山</li>
+        <li>自回归:一句话是一串接龙</li>
+        <li>Attention:词与词对视</li>
+        <li>彩蛋:30 行真的训练一个微型模型</li>
+      </ul>
+      <a class="btn" href="01-formulas.html">进入第一册 →</a>
+    </div>
+    <div class="bk">
+      <span class="bk-no">BOOK 2 · 输入端</span>
+      <h3>向量从哪来</h3>
+      <div class="bk-q">第一册那些向量是天上掉的?</div>
+      <ul>
+        <li>分词 BPE:为什么它数不清 strawberry 里的 r</li>
+        <li>Embedding:国王 − 男人 + 女人 = 女王</li>
+        <li>位置编码:Attention 天生对顺序失明</li>
+        <li>彩蛋:走完整条输入流水线</li>
+      </ul>
+      <a class="btn" href="02-tokens.html">进入第二册 →</a>
+    </div>
+    <div class="bk">
+      <span class="bk-no">BOOK 3 · 整机</span>
+      <h3>拆开整机</h3>
+      <div class="bk-q">几十层里面到底是什么?</div>
+      <ul>
+        <li>多头注意力:不止一双眼睛</li>
+        <li>FFN:隐藏层,知识住的地方</li>
+        <li>残差:深楼不塌的那个加号</li>
+        <li>反向传播:坡度沿链条回流</li>
+        <li>彩蛋:给玩具模型装上隐藏层</li>
+      </ul>
+      <a class="btn" href="03-transformer.html">进入第三册 →</a>
+    </div>
+    <div class="bk">
+      <span class="bk-no">BOOK 4 · 产品化</span>
+      <h3>从接龙到助手</h3>
+      <div class="bk-q">会接龙离 ChatGPT 还差什么?</div>
+      <ul>
+        <li>三阶段驯化:预训练 → SFT → RLHF</li>
+        <li>采样:温度与 top-p,每个字都是骰子</li>
+        <li>上下文窗口与 KV 缓存</li>
+        <li>彩蛋:给玩具模型装上骰子</li>
+      </ul>
+      <a class="btn" href="04-assistant.html">进入第四册 →</a>
+    </div>
+    <div class="bk">
+      <span class="bk-no">BOOK 5 · 收官</span>
+      <h3>边界与真相</h3>
+      <div class="bk-q">它到底是什么,该信几分?</div>
+      <ul>
+        <li>Scaling law:"大"本身就是配方</li>
+        <li>幻觉:亲手触发一次一本正经的胡说</li>
+        <li>模型 ≠ 数据库:一次巨大的有损压缩</li>
+        <li>大结局:整个故事一段话讲完</li>
+      </ul>
+      <a class="btn" href="05-limits.html">进入第五册 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 学习路线 ======================== -->
+<section class="chapter" id="routes">
+  <div class="ch-head"><span class="ch-no">路 线</span><h2>三条路线,按需选择</h2><span class="en">choose your path</span></div>
+  <div class="routes">
+    <div class="route">
+      <h4>🥾 完整登山(推荐)</h4>
+      <div class="rt">1 → 2 → 3 → 4 → 5</div>
+      <p>按编号走。每册的例子都建在前册的数字上,爬完你能向任何人完整讲清一个大模型。约需 4~6 小时,可随时中断。</p>
+    </div>
+    <div class="route">
+      <h4>⚡ 最短通关</h4>
+      <div class="rt">1 → 4 → 5</div>
+      <p>只想尽快"会用且不被忽悠":学会训练闭环,再看它如何变成助手、边界在哪。二、三册留作以后好奇时补。</p>
+    </div>
+    <div class="route">
+      <h4>🔬 已有基础</h4>
+      <div class="rt">3 → 5(+ 各册彩蛋)</div>
+      <p>已了解 softmax / 交叉熵?直接拆整机、看边界;五个彩蛋串起来是一条"从查表到会说话"的代码进化史。</p>
+    </div>
+  </div>
+  <div class="backline" style="margin-top:26px">一个建议:无论走哪条线,<b>别跳过动手实验</b>。这套书的全部赌注是——你亲手把学习率拉爆一次,胜过读十遍"学习率过大会导致发散"。</div>
+</section>
+
+<footer>看懂大模型 · 交互式零基础五册 —— 所有计算都在你的浏览器里实时进行,大胆去把每个滑块拉到头。</footer>
+</main>
+<script src="assets/common.js"></script>
+</body>
+</html>

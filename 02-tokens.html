@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第二册 · 向量从哪来:分词、Embedding、位置编码 | 看懂大模型</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.tok-chip{display:inline-block;border:1.5px solid var(--ink);border-radius:8px;padding:3px 10px;margin:3px 4px 3px 0;font-family:var(--serif);font-weight:900;font-size:1.02rem;box-shadow:2px 2px 0 rgba(31,43,62,.12);background:var(--card)}
+.tok-chip small{display:block;font-family:var(--mono);font-weight:400;font-size:.66rem;color:var(--sub);text-align:center}
+.tok-chip.alt{background:var(--teal-bg)}
+.tok-chip.rare{background:var(--red-bg);border-color:var(--red)}
+.tok-in{width:100%;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;font-size:1rem;font-family:inherit}
+.emb-svg text{font-family:var(--sans)}
+.pe-bars{display:flex;gap:6px;align-items:center;height:130px;margin-top:8px}
+.pe-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.pe-track{width:70%;height:96px;background:#EEF1F5;border-radius:4px;position:relative;overflow:hidden}
+.pe-fill{position:absolute;left:0;right:0;background:var(--teal);transition:all .2s}
+.pe-lbl{font-family:var(--mono);font-size:.66rem;color:var(--sub)}
+.cmp-table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:10px}
+.cmp-table th,.cmp-table td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+.cmp-table th{background:#F4F7FA}
+.cmp-table td.diff{background:var(--marker-soft);font-weight:700}
+.cmp-table td.same{color:var(--sub)}
+</style>
+</head>
+<body data-prog-total="8">
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">向量从哪来</span>
+    <a class="nav-chip" href="#c1" data-nav="c1">1 分词</a>
+    <a class="nav-chip" href="#c2" data-nav="c2">2 Embedding</a>
+    <a class="nav-chip" href="#c3" data-nav="c3">3 位置编码</a>
+    <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
+    <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
+    <a class="nav-chip" href="#c8" data-nav="c8">彩蛋</a>
+    <span class="nav-chip" id="navProg">掌握 0/8</span>
+  </div>
+  <div class="series-in">
+    <a class="sbook" href="index.html">📖 总目录</a>
+    <a class="sbook" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook cur" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <h1>第一册的向量,<br>都是<span class="hl">天上掉下来的</span>——现在补上产地。</h1>
+  <p class="lead">第一册第五课里,「它」「小猫」随身带着 Q/K/V 向量;第一课里,候选词表凭空出现。这一册回答输入端的三个问题:文字怎么被切成块(分词)?块怎么变成有含义的数字(Embedding)?顺序信息去哪了(位置编码)?三课都很短,而且每课结束你都会说一句"就这?"。</p>
+  <p class="note">建议先读完第一册——本册所有例子都会接回第一册的数字。</p>
+</header>
+
+<!-- ======================== 第一课 分词 ======================== -->
+<section class="chapter" id="c1">
+  <div class="ch-head"><span class="ch-no">第一课</span><h2>分词:模型眼里没有"字",只有"块"</h2><span class="en">tokenization</span></div>
+  <p class="ch-lede">模型不认识文字,只认识编号。第一步,是把一串文字切成一个个「token」——可以是词、半个词,甚至几个字母。切法不是人拍脑袋定的,是从数据里统计出来的。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>「今天天气很好」进入模型前,会变成什么样?</h3>
+    <p>直觉可能是逐字切,或按词典切。真实模型用的是<b>子词(subword)</b>切法:常见的组合当一整块,罕见的拆成小块。这样词表不用无限大,又不会遇到"没见过的词"就卡死。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>亲手切几句话——注意 token 不等于字,也不等于词</h3>
+    <div class="widget">
+      <input class="tok-in" id="tokIn" value="今天天气很好" aria-label="输入要分词的文本">
+      <div class="btn-row">
+        <button class="btn ghost tok-preset" data-t="今天天气很好">今天天气很好</button>
+        <button class="btn ghost tok-preset" data-t="我喜欢吃苹果">我喜欢吃苹果</button>
+        <button class="btn ghost tok-preset" data-t="strawberry">strawberry</button>
+        <button class="btn ghost tok-preset" data-t="unhappiness">unhappiness</button>
+        <button class="btn ghost tok-preset" data-t="魑魅魍魉">魑魅魍魉(生僻字)</button>
+      </div>
+      <div style="margin-top:14px" id="tokOut"></div>
+      <div class="readout">
+        <div class="cell">token 数 = <b id="tokN">—</b></div>
+        <div class="cell">字符数 = <b id="tokC">—</b></div>
+      </div>
+      <div class="gd-msg" id="tokMsg"></div>
+      <p class="small" style="margin-top:8px">这是一个玩具词表(下方代码里能看到全部内容),但切法和真实 tokenizer 一致:<b>贪心找词表里最长的匹配</b>。生僻内容会被拆到最碎(真实模型拆到字节)。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">规 则</span>
+    <h3>词表是怎么造出来的:BPE,三句话说完</h3>
+    <div class="fbox">
+      <div class="formula" style="font-size:clamp(1rem,2.4vw,1.25rem);line-height:2.1;font-family:var(--sans)">
+        从<span class="term" data-g="bpe-char" data-tip="<b>单字起步</b>:最初词表只有几百个基础字符/字节,任何文本都能拆开——所以模型永远不会遇到'词表里没有'的输入">单个字符</span>起步,重复几万次:<br>
+        统计语料里<span class="term" data-g="bpe-pair" data-tip="<b>最常相邻的一对</b>:比如英文里 t 和 h 老挨着,中文里「今」和「天」老挨着——它们会最先被合并">出现次数最多的相邻一对</span> → <span class="term" data-g="bpe-merge" data-tip="<b>合并成新块</b>:t+h→th,th+e→the。常见的东西越合越长,罕见的永远保持碎块">合并成一个新块</span>,加入词表
+      </div>
+      <div class="tip">把鼠标移到句子的某一部分上试试 →</div>
+      <div class="fnote">这个算法叫 <code>BPE(Byte Pair Encoding,字节对编码)</code>。词表大小(比如 10 万)是人定的,但<b>哪些块进词表,完全由数据里的出现频率决定</b>——所以英语里 "the" 是一整块,而生僻词会碎成渣。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">GPT 类模型的词表约 10 万块。你被计费的"token 数"、上下文窗口的"128k",单位都是它。两个著名后果:① 模型<b>数不清 strawberry 里有几个 r</b>——它看到的是「straw」「berry」两块整砖,根本没见过字母;② 同样意思的话,不同语言消耗的 token 数不同——训练语料少的语言会被切得更碎、更贵。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary><div class="pynote">点「▶ 运行」会在你的浏览器里加载一个真正的 Python 引擎(首次需联网下载,约 10~20 秒);也可以复制到本地运行。只用标准库。</div>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson1_bpe.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">from collections import Counter
+
+# 语料:五个英文单词(重复代表词频)
+words = ["low"]*5 + ["lower"]*2 + ["newest"]*6 + ["widest"]*3
+words = [list(w) for w in words]                # 起步:全拆成单字符
+
+for step in range(6):                           # BPE:重复合并 6 次
+    pairs = Counter()
+    for w in words:                             # ① 统计所有相邻对
+        for a, b in zip(w, w[1:]):
+            pairs[(a, b)] += 1
+    (a, b), cnt = pairs.most_common(1)[0]       # ② 找最常见的一对
+    for w in words:                             # ③ 合并成一个新块
+        i = 0
+        while i < len(w) - 1:
+            if w[i] == a and w[i+1] == b: w[i:i+2] = [a+b]
+            else: i += 1
+    print(f"第{step+1}次合并: {a}+{b} (出现{cnt}次)   newest → {[t for t in words[7]]}")</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q1" data-fbok="正确——模型看到的是「straw」「berry」两块砖的编号,里面有几个 r 它从没'看见'过。" data-fbbad="回想上面的实验:strawberry 被切成了几块?模型看到的是块的编号,不是字母。">
+      <h3>为什么大模型经常数不清「strawberry」里有几个 r?</h3><button class="q-opt" data-ok="0">模型数学不好,不会数数</button><button class="q-opt" data-ok="1">它看到的是「straw」「berry」两个整块 token,不是字母</button><button class="q-opt" data-ok="0">r 这个字母不在词表里</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge" id="b12">
+  <span class="btag">串联桥 · 第一课 → 第二课</span>
+  <h3>切完块,每块拿到一个编号——但编号只是门牌,没有含义</h3>
+  <p>「今天天气很好」现在变成了编号串,比如 <span class="mono">[3, 7, 12]</span>。问题来了:编号 7 和编号 8 <b>毫无关系</b>——就像门牌 7 号和 8 号的住户未必认识。可第一册第五课里,向量之间能做点积、能算相关度……编号什么时候变成了"有含义的数字"?</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第二课 EMBEDDING ======================== -->
+<section class="chapter" id="c2">
+  <div class="ch-head"><span class="ch-no">第二课</span><h2>Embedding:给每个 token 发一张"性格坐标"</h2><span class="en">embedding</span></div>
+  <p class="ch-lede">解决办法简单粗暴:造一张大表 E,第 i 行存 token i 的向量。查表就是"编号 → 向量"。神奇的不是查表,而是表里的数字<b>是训练出来的</b>——训练完,意思相近的词,向量自动挨在一起。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>怎么让"数字"承载"含义"?</h3>
+    <p>把每个词放到一张地图上:位置相近 = 含义相近。真实模型的"地图"有几千个维度,这里用 2 维演示——原理一样,只是真实版能同时表达远比"横竖"多得多的语义侧面。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>点两个词,看它们在语义地图上有多"合拍"</h3>
+    <div class="widget">
+      <div class="w-grid">
+        <div>
+          <svg id="embSvg" class="emb-svg" viewBox="0 0 360 320" width="100%"></svg>
+        </div>
+        <div>
+          <div class="w-title">相似度读数(点积与余弦,第一册第五课的老朋友)</div>
+          <div id="embRead" class="readout" style="flex-direction:column;align-items:flex-start"></div>
+          <div class="gd-msg" id="embMsg">先点一个词,再点另一个。</div>
+          <div class="btn-row"><button class="btn" id="embKing">✨ 试试向量算术:国王 − 男人 + 女人 = ?</button></div>
+          <div class="gd-msg" id="embKingMsg"></div>
+        </div>
+      </div>
+      <p class="small" style="margin-top:10px">试着比较:猫↔狗、猫↔汽车、国王↔女王。再按"向量算术"按钮——含义的<b>关系</b>(比如"性别差")也变成了固定的方向。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>一行查表 + 一个夹角</h3>
+    <div class="fbox" id="embF">
+      <div class="formula">
+        <span class="term" data-g="emb-x" data-tip="<b>x</b>:这个 token 的向量,后续一切计算(包括第一册第五课的 Q/K/V)的原材料">x</span><span class="op">=</span><span class="term" data-g="emb-E" data-tip="<b>E</b>:embedding 表,词表有多少 token 就有多少行。它是参数——第一册第三课的梯度下降同样在更新它的每一个数字">E</span>[<span class="term" data-g="emb-id" data-tip="<b>编号</b>:第一课分词的输出。查表动作本身毫无智能,智能全在表里的数字">编号</span>]
+        <span class="op" style="padding:0 1em">,</span>
+        相似度<span class="op">=</span><span class="term" data-g="emb-cos" data-tip="<b>cos θ</b>:两个向量夹角的余弦,1=同向(意思相近),0=垂直(不相干),−1=反向。点积除以两个长度就得到它">cos θ</span><span class="op">=</span><span class="frac"><span class="top"><span class="term" data-g="emb-dot" data-tip="<b>A·B</b>:点积——对应位置相乘再相加,第一册第五课算相关度用的正是它">A·B</span></span><span class="bot">|A||B|</span></span>
+      </div>
+      <div class="tip" id="embTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">E 的初始值是随机数(一开始"猫"和"汽车"一样近)。训练时每个词的向量被梯度反复推挤:<b>老出现在相似上下文里的词,会被推到相似的位置</b>。"含义"不是被定义出来的,是被统计出来的。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>算一次点积,验证"合拍"</h3>
+    <div class="verify">
+      地图上 猫=(1.2, 4.5),狗=(1.6, 4.2):<br>
+      <span class="mono">猫·狗 = 1.2×1.6 + 4.5×4.2 = 1.92 + 18.90 = <b>20.82</b></span>&nbsp;&nbsp;(而 猫·苹果 = 1.2×4.2+4.5×1.2 = 10.44,小得多)<br>
+      到上面的地图里点一下「猫」和「狗」,再点「猫」和「苹果」,核对读数。
+      <div class="try" data-exp="5" data-tol="0.01" data-key="t1"><span>✍️ 轮到你:(1, 2)·(3, 1) = ?</span><input type="number" step="0.01" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">真实模型里 E 有约 10 万行 × 几千列,是模型第一大参数块之一。第一册第五课「小猫」的 K=(1.8, 0.6),就是从这样的表出发、再经过几层加工得到的。著名的 <span class="mono">国王 − 男人 + 女人 ≈ 女王</span> 实验(word2vec, 2013)第一次让人们看到:语义关系真的变成了几何方向。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson2_embedding.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+E = {"猫": (1.2, 4.5), "狗": (1.6, 4.2), "鱼": (0.8, 3.6),
+     "苹果": (4.2, 1.2), "香蕉": (4.6, 1.0), "汽车": (7.5, 4.0),
+     "男人": (2.6, 6.2), "女人": (3.0, 6.5), "国王": (3.0, 7.5), "女王": (3.4, 7.8)}
+
+def cos(a, b):                                  # 夹角余弦 = 点积 ÷ 两个长度
+    dot = a[0]*b[0] + a[1]*b[1]
+    return dot / (math.hypot(*a) * math.hypot(*b))
+
+for pair in [("猫","狗"), ("猫","汽车"), ("国王","女王")]:
+    print(f"cos({pair[0]}, {pair[1]}) = {cos(E[pair[0]], E[pair[1]]):.3f}")
+
+# 向量算术:国王 − 男人 + 女人 ≈ ?
+t = (E["国王"][0]-E["男人"][0]+E["女人"][0], E["国王"][1]-E["男人"][1]+E["女人"][1])
+best = max(E, key=lambda w: cos(E[w], t) if w not in ("国王","男人","女人") else -9)
+print("国王 − 男人 + 女人 =", t, "→ 最接近:", best)</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q2" data-fbok="正确。E 是参数,和第一册彩蛋里的 W 一样被梯度下降一格格调出来——'含义'是训练的副产品。" data-fbbad="想想 E 的初始值是什么(随机数),以及第一册第三课的更新公式对谁生效。">
+      <h3>embedding 表里"猫和狗挨得近",是谁安排的?</h3><button class="q-opt" data-ok="0">工程师按词典手工填的</button><button class="q-opt" data-ok="1">训练出来的:E 也是参数,被梯度下降从随机数一路调出来</button><button class="q-opt" data-ok="0">分词算法顺便算好的</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge" id="b23">
+  <span class="btag">串联桥 · 第二课 → 第三课</span>
+  <h3>还差最后一块:向量里没有"第几个"</h3>
+  <p>现在每个 token 都有向量了。但第一册第五课的 Attention 只做"点积 + 加权求和"——这两个操作<b>对顺序完全失明</b>:把句子里的词打乱,每对词的点积一个都不变。可「猫咬狗」和「狗咬猫」显然不是一回事……</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第三课 位置编码 ======================== -->
+<section class="chapter" id="c3">
+  <div class="ch-head"><span class="ch-no">第三课</span><h2>位置编码:把"第几个"也写进向量里</h2><span class="en">positional encoding</span></div>
+  <p class="ch-lede">解决办法依然简单粗暴:给每个<b>位置</b>也造一个向量,直接<b>加</b>到词向量上。同一个词出现在不同位置,进入模型的向量就不一样了——顺序信息由此混入。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>不加位置信息,「猫咬狗」和「狗咬猫」在模型眼里一样吗?</h3>
+    <p>完全一样。Attention 把上下文<b>当作一袋词</b>:谁在前谁在后,点积和加权和都感觉不到。亲眼确认一下:</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩 ①</span>
+    <h3>开关位置编码,对比两句话里每个词的"真实输入"</h3>
+    <div class="widget">
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn" id="peOff">不加位置编码 🙈</button>
+        <button class="btn ghost" id="peOn">加上位置编码 📍</button>
+      </div>
+      <div id="peCmp" style="overflow-x:auto"></div>
+      <div class="gd-msg" id="peMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩 ②</span>
+    <h3>每个位置一枚独一无二的"指纹"</h3>
+    <div class="widget">
+      <div class="w-title">拖动位置,看 8 个刻度盘的组合(经典的 sin/cos 方案)</div>
+      <div class="slider-row" style="max-width:420px"><label>位置 pos</label><input type="range" id="peSlider" min="0" max="15" step="1" value="0"><span class="val" id="peV">0</span></div>
+      <div class="pe-bars" id="peBars"></div>
+      <p class="small" style="margin-top:8px">左边的刻度盘转得快(区分相邻位置),右边的转得慢(区分远近段落)——像钟表的秒针、分针、时针。任何两个位置的 8 个读数组合都不相同,而且"相隔 3 格"这类<b>相对关系</b>在任何位置看起来都一样,模型很容易学会利用它。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>一个加号,加一对三角函数</h3>
+    <div class="fbox" id="peF">
+      <div class="formula" style="font-size:clamp(1.15rem,2.8vw,1.6rem)">
+        <span class="term" data-g="pe-in" data-tip="<b>实际输入</b>:进入 Attention 的向量。同一个词换位置,它就不同了——顺序信息就这样混了进去">输入</span><span class="op">=</span><span class="term" data-g="pe-word" data-tip="<b>词向量</b>:第二课查表得到的、带含义的向量">词向量</span><span class="op">+</span><span class="term" data-g="pe-pos" data-tip="<b>位置向量</b>:只看位置、不看词。经典方案用一组不同转速的 sin/cos;新式模型(RoPE)改成在点积时旋转,思想一致:让'第几个'可被计算">位置向量(pos)</span>
+      </div>
+      <div class="tip" id="peTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">经典方案:<code class="mi">PE(pos, 2i) = sin(pos / 10000<sup>2i/d</sup>)</code>,配套一个 cos。不用记——它只是"一排转速不同的指针"的数学写法。现代模型多用旋转位置编码(RoPE),但回答的仍是同一个问题:<b>让失明于顺序的 Attention 感知顺序</b>。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">至此输入端闭环:<b>文字 → token 编号(第一课)→ 词向量(第二课)+ 位置向量(第三课)→ 送进 Attention(第一册第五课)</b>。第一册里"天上掉下来"的每一个数字,现在都有了产地。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson3_position.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def pe(pos, d=8):                              # 位置 pos 的"指纹":d 个数字
+    v = []
+    for i in range(d // 2):
+        angle = pos / (100 ** (2 * i / d))     # 转速逐对变慢(演示用 100,真实用 10000)
+        v += [math.sin(angle), math.cos(angle)]
+    return v
+
+for pos in range(6):
+    print(f"位置{pos}: ", [f"{x:+.2f}" for x in pe(pos)])
+# 观察:任何两行都不相同——每个位置一枚独一无二的指纹;
+# 且第一列变得快、最后一列变得慢,像秒针和时针。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q3" data-fbok="正确——点积和加权求和都是'一袋词'操作,必须把位置写进向量,顺序才可被计算。" data-fbbad="回看动手玩①:不加位置编码时,两句话里「猫」的输入向量一样吗?">
+      <h3>如果去掉位置编码,「我打你」和「你打我」对模型来说?</h3><button class="q-opt" data-ok="1">完全一样——Attention 本身对顺序失明</button><button class="q-opt" data-ok="0">仍然不同,因为词的先后会影响点积</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 总装 ======================== -->
+<section class="chapter" id="c6">
+  <div class="ch-head"><span class="ch-no">总 装</span><h2>输入流水线:文字 → 可计算的向量</h2><span class="en">putting it together</span></div>
+  <p class="ch-lede">三个零件装回整机。这条流水线跑完,交接棒就传给了第一册第五课:</p>
+  <div class="asm">
+    <button class="asm-node" data-go="c1"><div class="an">STEP 1 · 第一课</div><div class="at">分词</div><div class="ad">按词表贪心切块:「今天天气很好」→ [今天][天气][很好] → 编号 [3, 7, 12]</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c2"><div class="an">STEP 2 · 第二课</div><div class="at">查 Embedding 表</div><div class="ad">每个编号换成一行向量:含义相近的 token,向量自动相邻</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c3"><div class="an">STEP 3 · 第三课</div><div class="at">加位置向量</div><div class="ad">词向量 + 位置指纹 = 实际输入,顺序从此可计算</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" style="border-style:dashed"><div class="an">交 棒</div><div class="at">→ Attention</div><div class="ad">第一册第五课从这里接手:Q/K/V 都由这些输入向量乘上参数矩阵得到</div></button>
+  </div>
+</section>
+
+<!-- ======================== 毕业测验 ======================== -->
+<section class="chapter" id="c7">
+  <div class="ch-head"><span class="ch-no">毕 业</span><h2>迁移测验:换个场景,你还会吗</h2><span class="en">transfer test</span></div>
+  <p class="ch-lede">四题全对,输入端毕业:</p>
+  <div class="w-grid">
+    <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回想第一课:模型看到的是块,不是字母/汉字。">
+      <h3>① 模型经常写对成语却数错笔画,最可能的原因是?</h3><button class="q-opt" data-ok="1">成语是常见 token 整块记住了,笔画它从没"见"过</button><button class="q-opt" data-ok="0">笔画太多超出了上下文窗口</button><button class="q-opt" data-ok="0">中文语料太少</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="编号只是门牌;含义住在 embedding 向量里。">
+      <h3>② 词表里编号 100 和编号 101 的两个 token,含义一定相近吗?</h3><button class="q-opt" data-ok="0">一定相近,编号是按含义排的</button><button class="q-opt" data-ok="1">毫无关系——相近与否要看它们的向量,编号只是门牌</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="E 的初始值是随机数,后来发生了什么?第一册第三课。">
+      <h3>③ 一个训练到一半的模型,它的 embedding 表 E 正在?</h3><button class="q-opt" data-ok="1">和其他参数一起被梯度下降持续更新</button><button class="q-opt" data-ok="0">保持不变,E 在训练前就定好了</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="位置编码解决的正是这个问题——回看第三课动手玩①。">
+      <h3>④ 把一句话的词随机打乱后输入(不加位置编码的)Attention,输出会?</h3><button class="q-opt" data-ok="1">完全不变——这正是需要位置编码的原因</button><button class="q-opt" data-ok="0">大变——Attention 天生对顺序敏感</button><div class="q-fb"></div></div>
+  </div>
+  <div class="verify" id="gradBox" data-done="🎓 毕业!输入端三块拼图齐了——你已经知道第一册那些向量的完整产地。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
+</section>
+
+<!-- ======================== 彩蛋 ======================== -->
+<section class="chapter" id="c8">
+  <div class="ch-head"><span class="ch-no">彩 蛋</span><h2>二十几行,走完整条输入流水线</h2><span class="en">the input pipeline</span></div>
+  <p class="ch-lede">从一句中文出发,亲手走到"可以送进 Attention 的向量"为止——第一册第五课的起点,就是这段代码的终点。</p>
+  <div class="pyblock">
+    <div class="pyhead"><span class="pl">input_pipeline.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+    <pre class="pycode">import math, random
+random.seed(0)
+
+# ── STEP 1 分词:贪心找词表里最长的匹配 ──────────────────
+vocab = ["今天", "天气", "很好", "很", "好", "明天", "心情"]
+def tokenize(text):
+    toks, i = [], 0
+    while i < len(text):
+        for w in sorted(vocab, key=len, reverse=True):
+            if text.startswith(w, i): toks.append(w); i += len(w); break
+        else: toks.append(text[i]); i += 1       # 词表没有:逐字硬啃
+    return toks
+
+tokens = tokenize("今天天气很好")
+ids = [vocab.index(t) for t in tokens]
+print("token:", tokens, " 编号:", ids)
+
+# ── STEP 2 查 embedding 表(真实模型里这张表是训练出来的)──
+d = 4
+E = [[round(random.uniform(-1, 1), 2) for _ in range(d)] for _ in vocab]
+
+# ── STEP 3 加位置指纹 ────────────────────────────────────
+def pe(pos):
+    return [math.sin(pos / 100**(2*i/d)) if j == 0 else math.cos(pos / 100**(2*i/d))
+            for i in range(d // 2) for j in (0, 1)]
+
+for pos, (t, i) in enumerate(zip(tokens, ids)):
+    x = [round(E[i][k] + pe(pos)[k], 2) for k in range(d)]
+    print(f"位置{pos}「{t}」 词向量{E[i]} + 位置指纹 → 实际输入 {x}")
+print("↑ 这些向量接下来会乘上参数矩阵得到 Q/K/V——第一册第五课,从这里开始。")</pre>
+    <pre class="pyout" hidden></pre>
+  </div>
+</section>
+
+<div class="bridge next-book">
+  <span class="btag">下一册</span>
+  <h3>第三册 · 拆开整机:多头、FFN、残差与反向传播</h3>
+  <p>输入端搞定了,但第一册只拆了 Transformer 的半边心脏:Attention 负责"搬运信息",可"加工信息"的前馈网络(隐藏层)、让几十层堆得起来的残差连接、以及给几百亿参数同时求坡度的反向传播,都还蒙在引擎盖下。下一册全部拆开,而且终极彩蛋会给第一册的玩具模型<b>真的装上隐藏层</b>。</p>
+  <a class="btn" href="03-transformer.html">进入第三册 →</a>
+  <div class="nb-from">← 或回到 <a href="01-formulas.html">第一册 · 五个公式</a> / <a href="index.html">总目录</a></div>
+</div>
+
+<footer>看懂大模型 · 第二册 向量从哪来 —— 所有计算都在你的浏览器里实时进行。</footer>
+</main>
+
+<script src="assets/common.js"></script>
+<script>
+/* ==================== 第一课 分词器 ==================== */
+const TVOCAB=['今天','明天','天气','心情','很好','不错','大模型','模型','语言','学习','喜欢','我们','苹果','香蕉','很','好','我','你','吃','了','的','。',',','!',
+ 'straw','berry','token','izer','happi','ness','low','new','est','er','un','ing','s'];
+function tokenize(text){
+  const toks=[]; let i=0;
+  const sorted=[...TVOCAB].sort((a,b)=>b.length-a.length);
+  while(i<text.length){
+    const hit=sorted.find(w=>text.startsWith(w,i));
+    if(hit){toks.push({t:hit,id:TVOCAB.indexOf(hit),rare:false});i+=hit.length;}
+    else{toks.push({t:text[i],id:'?',rare:true});i+=1;}
+  }
+  return toks;
+}
+function tokRender(){
+  const text=$('#tokIn').value.trim();
+  if(!text){$('#tokOut').innerHTML='';$('#tokN').textContent='—';$('#tokC').textContent='—';$('#tokMsg').textContent='';return;}
+  const toks=tokenize(text);
+  $('#tokOut').innerHTML=toks.map((o,i)=>
+    `<span class="tok-chip${o.rare?' rare':(i%2?' alt':'')}">${o.t==' '?'␣':o.t}<small>${o.rare?'罕见:逐字':'id='+o.id}</small></span>`).join('');
+  $('#tokN').textContent=toks.length;
+  $('#tokC').textContent=text.replace(/\s/g,'').length;
+  const rare=toks.filter(o=>o.rare).length;
+  $('#tokMsg').textContent =
+    rare===toks.length&&rare>0?'词表里一个都没有——全部逐字硬啃(真实模型会拆到字节)。生僻内容就是这样变"贵"的。':
+    rare>0?`有 ${rare} 块不在词表里,被拆成了单字。常见内容整块通过,罕见内容碎成渣。`:
+    toks.length<text.replace(/\s/g,'').length?'注意:token 数少于字数——常见组合被当成一整块。':
+    '每个字恰好一个 token。';
+}
+$('#tokIn').addEventListener('input',tokRender);
+$$('.tok-preset').forEach(b=>b.addEventListener('click',()=>{$('#tokIn').value=b.dataset.t;tokRender();}));
+tokRender();
+
+/* ==================== 第二课 语义地图 ==================== */
+const EMB={'猫':[1.2,4.5],'狗':[1.6,4.2],'鱼':[0.8,3.6],'苹果':[4.2,1.2],'香蕉':[4.6,1.0],
+ '汽车':[7.5,4.0],'卡车':[7.8,3.7],'男人':[2.6,6.2],'女人':[3.0,6.5],'国王':[3.0,7.5],'女王':[3.4,7.8]};
+const ES={W:360,H:320,pad:34,max:8.6};
+const ex=v=>ES.pad+v/ES.max*(ES.W-2*ES.pad);
+const ey=v=>ES.H-ES.pad-v/ES.max*(ES.H-2*ES.pad);
+let embSel=[];
+function embDraw(extra){
+  const s=$('#embSvg');
+  let inner=`<rect x="0" y="0" width="${ES.W}" height="${ES.H}" fill="#F9FAF7" rx="10"/>`;
+  if(embSel.length===2){
+    const[a,b]=embSel;
+    inner+=`<line x1="${ex(EMB[a][0])}" y1="${ey(EMB[a][1])}" x2="${ex(EMB[b][0])}" y2="${ey(EMB[b][1])}" stroke="#0E7C7B" stroke-width="2" stroke-dasharray="5 4"/>`;
+  }
+  for(const[w,v]of Object.entries(EMB)){
+    const sel=embSel.includes(w);
+    inner+=`<g class="emb-pt" data-w="${w}" style="cursor:pointer">
+      <circle cx="${ex(v[0])}" cy="${ey(v[1])}" r="${sel?9:6}" fill="${sel?'#FFE163':'#0E7C7B'}" stroke="#1F2B3E" stroke-width="${sel?2.5:1.5}"/>
+      <text x="${ex(v[0])+10}" y="${ey(v[1])+4}" font-size="13" font-weight="${sel?'900':'600'}" fill="#1F2B3E">${w}</text></g>`;
+  }
+  if(extra) inner+=extra;
+  s.innerHTML=inner;
+  $$('#embSvg .emb-pt').forEach(g=>g.addEventListener('click',()=>{
+    const w=g.dataset.w;
+    if(embSel.includes(w)) embSel=embSel.filter(x=>x!==w);
+    else{embSel.push(w); if(embSel.length>2)embSel.shift();}
+    embDraw(); embRead();
+  }));
+}
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1];
+const norm=a=>Math.hypot(a[0],a[1]);
+function embRead(){
+  if(embSel.length<2){$('#embRead').innerHTML='';$('#embMsg').textContent=embSel.length?'再点一个词。':'先点一个词,再点另一个。';return;}
+  const[a,b]=embSel,va=EMB[a],vb=EMB[b];
+  const d=dot(va,vb),c=d/(norm(va)*norm(vb));
+  $('#embRead').innerHTML=
+    `<div class="cell">${a}=(${va.join(', ')})&nbsp;&nbsp;${b}=(${vb.join(', ')})</div>
+     <div class="cell">点积 ${a}·${b} = <b>${f2(d)}</b></div>
+     <div class="cell">余弦 cos θ = <b>${f2(c,3)}</b></div>`;
+  $('#embMsg').textContent =
+    c>0.98?`几乎同向——「${a}」和「${b}」在这张地图上是近义词。`:
+    c>0.8?`夹角很小——含义相当接近。`:
+    c>0.5?`有点关系,但不算近。`:`方向差得远——这俩在语义上不搭界。`;
+}
+$('#embKing').addEventListener('click',()=>{
+  const t=[EMB['国王'][0]-EMB['男人'][0]+EMB['女人'][0],EMB['国王'][1]-EMB['男人'][1]+EMB['女人'][1]];
+  let best=null,bc=-9;
+  for(const[w,v]of Object.entries(EMB)){
+    if(['国王','男人','女人'].includes(w))continue;
+    const c=dot(v,t)/(norm(v)*norm(t));
+    if(c>bc){bc=c;best=w;}
+  }
+  embSel=[];
+  embDraw(`<g><circle cx="${ex(t[0])}" cy="${ey(t[1])}" r="8" fill="none" stroke="#D1495B" stroke-width="2.5" stroke-dasharray="4 3"/>
+    <text x="${ex(t[0])+11}" y="${ey(t[1])-8}" font-size="12" fill="#D1495B" font-weight="900">计算结果 (${f2(t[0],1)}, ${f2(t[1],1)})</text></g>`);
+  $('#embKingMsg').innerHTML=`国王(${EMB['国王']}) − 男人(${EMB['男人']}) + 女人(${EMB['女人']}) = (${f2(t[0],1)}, ${f2(t[1],1)}) → 地图上最近的词是「<b>${best}</b>」。"性别"这层含义,是一个可以加减的方向。`;
+});
+embDraw();
+
+/* ==================== 第三课 位置编码 ==================== */
+/* —— ① 对比表 —— */
+const PEW={'猫':[1.0,0.2],'咬':[0.3,0.9],'狗':[0.8,0.6]};
+const POS3=[[0.10,0.00],[0.20,0.10],[0.30,0.20]];
+function peCmp(withPE){
+  const s1=['猫','咬','狗'],s2=['狗','咬','猫'];
+  const cell=(w,pos)=>{
+    const v=PEW[w],p=POS3[pos];
+    const r=withPE?[v[0]+p[0],v[1]+p[1]]:v;
+    return `${w} = (${f2(r[0],2)}, ${f2(r[1],2)})`;
+  };
+  let rows='';
+  for(let i=0;i<3;i++){
+    const a=cell(s1[i],i),b=cell(s2[i],i);
+    // 同一个词在两句中的输入是否相同?比较该词在两句里的向量
+    rows+=`<tr><td>位置 ${i}</td><td>${a}</td><td>${b}</td></tr>`;
+  }
+  // 逐词对比:猫 在句1位置0 vs 句2位置2
+  const wordCmp=['猫','咬','狗'].map(w=>{
+    const p1=s1.indexOf(w),p2=s2.indexOf(w);
+    const v=PEW[w];
+    const a=withPE?[v[0]+POS3[p1][0],v[1]+POS3[p1][1]]:v;
+    const b=withPE?[v[0]+POS3[p2][0],v[1]+POS3[p2][1]]:v;
+    const same=f2(a[0],2)===f2(b[0],2)&&f2(a[1],2)===f2(b[1],2);
+    return `<tr><td>「${w}」的实际输入</td><td class="${same?'same':'diff'}">句1:(${f2(a[0],2)}, ${f2(a[1],2)})</td><td class="${same?'same':'diff'}">句2:(${f2(b[0],2)}, ${f2(b[1],2)})${same?' ← 一模一样':' ← 不同了!'}</td></tr>`;
+  }).join('');
+  $('#peCmp').innerHTML=`<table class="cmp-table">
+    <tr><th></th><th>句1「猫咬狗」</th><th>句2「狗咬猫」</th></tr>${wordCmp}</table>`;
+  $('#peMsg').textContent=withPE?
+    '加上位置向量后,同一个词在不同位置的输入不同了——Attention 从此能分清"谁咬谁"。':
+    '不加位置编码:「猫」在两句话里的输入向量一模一样(咬、狗同理)——模型根本无法区分这两句话。';
+  $('#peOn').classList.toggle('ghost',!withPE);
+  $('#peOff').classList.toggle('ghost',withPE);
+}
+$('#peOff').addEventListener('click',()=>peCmp(false));
+$('#peOn').addEventListener('click',()=>peCmp(true));
+peCmp(false);
+
+/* —— ② 指纹 —— */
+function peVec(pos,d=8){
+  const v=[];
+  for(let i=0;i<d/2;i++){
+    const a=pos/Math.pow(100,2*i/d);
+    v.push(Math.sin(a),Math.cos(a));
+  }
+  return v;
+}
+function peBars(){
+  const pos=+$('#peSlider').value;
+  $('#peV').textContent=pos;
+  const v=peVec(pos);
+  $('#peBars').innerHTML=v.map((x,i)=>{
+    const h=Math.abs(x)*48, top=x>=0?48-h:48;
+    return `<div class="pe-col"><div class="pe-track">
+      <div style="position:absolute;top:48px;left:0;right:0;height:1px;background:#C6CFDA"></div>
+      <div class="pe-fill" style="top:${top}px;height:${h}px;${x<0?'background:#D1495B;':''}"></div></div>
+      <span class="pe-lbl">${i%2?'cos':'sin'}${Math.floor(i/2)}<br>${f2(x,2)}</span></div>`;
+  }).join('');
+}
+$('#peSlider').addEventListener('input',peBars);
+peBars();
+</script>
+</body>
+</html>

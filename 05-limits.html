@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第五册 · 边界与真相:规模、幻觉与压缩 | 看懂大模型</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.hal-step{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;font-family:var(--serif);font-weight:900;font-size:1.15rem;min-height:2.2em}
+.hal-tok{background:var(--card);border:1.5px solid var(--ink);border-radius:8px;padding:2px 12px;box-shadow:2px 2px 0 rgba(31,43,62,.12)}
+.hal-tok.gen{background:var(--marker-soft);animation:pop .3s}
+.hal-tok.wrong{background:var(--red-bg);border-color:var(--red)}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+.hal-conf{font-family:var(--mono);font-size:.78rem;color:var(--teal-d);display:block;text-align:center;font-weight:400}
+.cmp2{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+.cmp2 .c2row{display:grid;grid-template-columns:8.5em 1fr 7em;gap:10px;align-items:center}
+.cmp2 .c2l{font-size:.9rem;font-weight:600}
+.cmp2 .c2v{font-family:var(--mono);font-size:.88rem;text-align:right}
+.mem-count{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.mem-chip{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:5px 12px;font-size:.9rem;font-family:var(--mono)}
+.finale{border:2.5px solid var(--ink);border-radius:16px;background:linear-gradient(180deg,#FFFDF2,#fff);padding:28px 26px;margin-top:30px;box-shadow:5px 5px 0 rgba(31,43,62,.15)}
+.finale h3{font-family:var(--serif);font-weight:900;font-size:1.4rem;margin-bottom:12px}
+.finale p{max-width:760px}
+</style>
+</head>
+<body data-prog-total="7">
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">边界与真相</span>
+    <a class="nav-chip" href="#c1" data-nav="c1">1 规模</a>
+    <a class="nav-chip" href="#c2" data-nav="c2">2 幻觉</a>
+    <a class="nav-chip" href="#c3" data-nav="c3">3 模型≠数据库</a>
+    <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
+    <a class="nav-chip" href="#c9" data-nav="c9">大结局</a>
+    <span class="nav-chip" id="navProg">掌握 0/7</span>
+  </div>
+  <div class="series-in">
+    <a class="sbook" href="index.html">📖 总目录</a>
+    <a class="sbook" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook cur" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <h1>机制你全懂了。<br>最后的问题是:<span class="hl">该信它几分?</span></h1>
+  <p class="lead">前四册讲完了"它是怎么工作的"。这一册回答三个更大的问题:为什么"大"本身就是魔法?为什么它会一本正经地胡说八道?它到底是什么——数据库、搜索引擎,还是别的东西?这一册没有新公式,只有三个会改变你使用方式的真相。</p>
+  <p class="note">前置:第一册。这是全系列的收官之册。</p>
+</header>
+
+<!-- ======================== 第一课 规模 ======================== -->
+<section class="chapter" id="c1">
+  <div class="ch-head"><span class="ch-no">第一课</span><h2>Scaling Law:"大"本身就是配方</h2><span class="en">scaling laws</span></div>
+  <p class="ch-lede">从第一册的玩具模型到 GPT-4,公式一行没换。变的只有三个数:参数量、数据量、算力。而 2020 年的发现是:<b>罚分随这三个数的增长,呈教科书般平滑的直线下降</b>(在对数坐标下)——这条经验规律叫 scaling law。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>把模型从一百万参数拉到一万亿,看罚分曲线</h3>
+    <div class="widget">
+      <div class="slider-row" style="max-width:480px"><label>参数量</label><input type="range" id="scN" min="6" max="12" step="0.1" value="6"><span class="val" id="scNv">10⁶</span></div>
+      <svg id="scSvg" viewBox="0 0 700 300" width="100%"></svg>
+      <div class="readout">
+        <div class="cell">参数量 ≈ <b id="scP">100 万</b></div>
+        <div class="cell">平均罚分(示意)≈ <b id="scL">—</b></div>
+        <div class="cell" id="scAbility" style="max-width:100%">—</div>
+      </div>
+      <div class="gd-msg" id="scMsg"></div>
+      <p class="small" style="margin-top:8px">纵轴罚分是第一册第二课的交叉熵;曲线为示意(真实论文里是用几百次训练实测拟合的)。里程碑与"解锁能力"也是示意——用于感受量级,非精确对应。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">规 律</span>
+    <h3>一条经验幂律,和它的两个震撼推论</h3>
+    <div class="fbox" id="scF">
+      <div class="formula">
+        <span class="term" data-g="sc-L" data-tip="<b>L</b>:平均罚分(交叉熵,第一册第二课)。它每降一点,模型的语言能力就上一个台阶">L</span><span class="op">≈</span><span class="frac"><span class="top"><span class="term" data-g="sc-a" data-tip="<b>常数 a</b>:由数据和架构决定的系数">a</span></span><span class="bot"><span class="term" data-g="sc-N" data-tip="<b>N<sup>α</sup></b>:参数量的 α 次方,α 是个很小的正数(论文实测约 0.076)。幂律=在对数坐标下是直线:参数每翻 10 倍,罚分稳定往下走一小格">N<sup>α</sup></span></span></span>
+      </div>
+      <div class="tip" id="scTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">推论一:<b>可预测</b>——训练 GPT-4 之前,OpenAI 用千分之一算力的小模型就预测出了它的最终罚分,烧几亿美元前先看到了答案。推论二:<b>不可预测</b>——罚分平滑下降,但某些<b>具体能力</b>(多步推理、按示例学习)会在某个规模附近突然"冒出来",小模型上完全测不到,这被称为"涌现"(是否只是测量方式造成的错觉,学界仍在争论)。注意:scaling law 是<b>经验规律</b>,像摩尔定律,不是数学定理——没人保证它永远延续。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">这就是为什么过去几年 AI 的主旋律是"更大":<b>不需要新想法,只要更多 GPU,能力就按幂律兑现</b>——这是工程史上罕见的确定性。也是为什么算力成了战略资源。近年的补充发现(Chinchilla,2022):参数和数据要<b>配比着长</b>,光堆参数不喂够数据是浪费——于是"数据快不够用了"也成了真问题。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary><div class="pynote">点「▶ 运行」在浏览器里真跑(首次需联网下载引擎,约 10~20 秒);也可复制到本地。只用标准库。</div>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson1_scaling.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">alpha, a = 0.076, 12.0                         # 示意参数(量级参考真实论文)
+
+print(f"{'参数量':>10}   {'罚分 L':>7}   {'每翻10倍降幅'}")
+prev = None
+for e in range(6, 13):                         # 10^6 → 10^12
+    N = 10 ** e
+    L = a / N ** alpha
+    drop = f"{prev - L:.3f}" if prev else "  —"
+    print(f"10^{e:<2}       {L:7.3f}     {drop}")
+    prev = L
+# 每翻 10 倍,罚分稳定下降差不多的一小格——对数坐标下的直线。
+# "稳定"是它可怕的地方:想再降一格?再买 10 倍 GPU 就行。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q1" data-fbok="正确——它是大量实验拟合出的经验规律(像摩尔定律),迄今惊人地稳定,但没有数学证明兜底。" data-fbbad="回看规律盒最后一句:它更像摩尔定律,还是像勾股定理?">
+      <h3>Scaling law 的性质更接近?</h3><button class="q-opt" data-ok="0">数学定理:已被严格证明,永远成立</button><button class="q-opt" data-ok="1">经验规律:实测拟合、迄今稳定,但无人保证永远延续</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第一课 → 第二课</span>
+  <h3>但罚分降得再低,有一件事它结构性地做不好</h3>
+  <p>回想罚分是什么:<b>"接得像不像"的分数</b>(第一册第二课)。整个训练过程,从没有任何一个环节在奖励"说的是不是真的"。这个缺口,在模型能说会道之后,变成了它最著名的毛病。</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第二课 幻觉 ======================== -->
+<section class="chapter" id="c2">
+  <div class="ch-head"><span class="ch-no">第二课</span><h2>幻觉:流畅,是它唯一被训练的美德</h2><span class="en">hallucination</span></div>
+  <p class="ch-lede">"幻觉"不是 bug,不是偶发故障,而是这套机制的<b>必然产物</b>:模型被训练成"永远接出最像下文的词"——哪怕它对答案一无所知,接龙也不会停下来,而且每一步都同样自信。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>亲手触发一次幻觉(用你已经很熟的玩具模型)</h3>
+    <div class="widget">
+      <div class="w-title">模型的全部知识,只有这四句训练语料:</div>
+      <div class="mem-chip" style="display:inline-block">李白 是 诗人 。&nbsp;&nbsp;杜甫 是 诗人 。&nbsp;&nbsp;曹操 是 武将 。&nbsp;&nbsp;李白 的 朋友 是 杜甫 。</div>
+      <div class="btn-row" style="margin-top:14px">
+        <button class="btn" id="halKnown">问它见过的:「李白 是 ___」</button>
+        <button class="btn warn" id="halUnknown">问它没见过的:「曹操 的 朋友 是 ___」</button>
+      </div>
+      <div class="hal-step" id="halOut"><span class="small" style="font-weight:400">按一个按钮,看它逐词接龙(每个词下方是它当步的"自信度")。</span></div>
+      <div class="gd-msg" id="halMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">机 制</span>
+    <h3>为什么编造和真话"手感"一模一样</h3>
+    <div class="fbox">
+      <div class="formula" style="font-size:clamp(.98rem,2.4vw,1.25rem);font-family:var(--sans);line-height:2.1;text-align:left;max-width:660px;margin:0 auto">
+        ① 训练目标是<span class="term" data-g="hal-like" data-tip="<b>「接得像」</b>:交叉熵只罚'没接出语料里的下一个词',不罚'内容失实'——语料里也没有'真/假'标签可学">接得像</span>,不是<span class="term" data-g="hal-true" data-tip="<b>「说得真」</b>:没有任何一个训练环节校验事实。RLHF 有帮助但治标:人类标注员也常分不出'自信的错'">说得真</span>;<br>
+        ② 接龙<span class="term" data-g="hal-stop" data-tip="<b>不会说'不知道'</b>:softmax 永远给出一个概率最高的词。'知识缺口'在分布上常表现为——把几个都合理的候选混成一个流畅但错误的组合">永不停机</span>:不知道时,它输出的是"最像答案的东西";<br>
+        ③ 编造和真话走的是<span class="term" data-g="hal-same" data-tip="<b>同一条流水线</b>:都是 Attention→打分→softmax→采样。模型自己没有'我在编'的信号,语气自然也一样自信">同一条流水线</span>,语气同样自信。
+      </div>
+      <div class="tip">把鼠标移到三条的关键词上试试 →</div>
+      <div class="fnote">对策(缓解,非根治):让它<b>查了再答</b>(联网/RAG,把事实放进上下文窗口——第四册第三课);让它<b>展示推理过程</b>;对关键事实<b>永远交叉核验</b>。使用铁律:<b>它的流畅度和可信度无关</b>——这正是它与人最不像的地方:人编瞎话时多少会心虚,它不会。</div>
+    </div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson2_hallucination.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math, random
+random.seed(0)
+
+# 模型的全部"知识":四句话
+corpus = ("李白 是 诗人 。 杜甫 是 诗人 。 曹操 是 武将 。 "
+          "李白 的 朋友 是 杜甫 。").split()
+vocab = sorted(set(corpus)); n = len(vocab)
+idx = {w: i for i, w in enumerate(vocab)}
+W = [[random.uniform(-0.1, 0.1) for _ in range(n)] for _ in range(n)]
+
+def softmax(z):
+    ex = [math.exp(v) for v in z]; s = sum(ex)
+    return [e / s for e in ex]
+
+for _ in range(80):                            # 第一册的训练循环,原封不动
+    for prev, nxt in zip(corpus[:-1], corpus[1:]):
+        p = softmax(W[idx[prev]])
+        for j in range(n):
+            W[idx[prev]][j] -= 0.5 * (p[j] - (1 if j == idx[nxt] else 0))
+
+def ask(prompt):
+    w, out = prompt[-1], list(prompt)
+    for _ in range(5):
+        p = softmax(W[idx[w]])
+        w = max(vocab, key=lambda t: p[idx[t]])
+        out.append(f"{w}({p[idx[w]]:.0%})")     # 括号里是每步的自信度
+        if w == "。": break
+    return " ".join(out)
+
+print("见过的:  ", ask(["李白", "是"]))
+print("没见过的:", ask(["曹操", "的"]))
+# 「曹操 的 朋友 是 诗人」——语料里根本没有这句话。
+# 它把「的→朋友」「朋友→是」「是→诗人」三段各自很像的碎片,流畅地缝在了一起。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q2" data-fbok="正确——训练从头到尾只奖励'像下文',幻觉是这个目标函数的必然副产品。" data-fbbad="回想罚分公式罚的是什么:接得像不像,还是说得真不真?">
+      <h3>大模型幻觉的根本原因是?</h3><button class="q-opt" data-ok="0">训练数据里错误信息太多</button><button class="q-opt" data-ok="1">训练目标只奖励"接得像",没有任何环节校验"说得真"</button><button class="q-opt" data-ok="0">服务器负载太高时开始乱答</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第二课 → 第三课</span>
+  <h3>它连语料里的原话都会"记错"——因为它根本没在存原话</h3>
+  <p>幻觉揭示了一个更深的事实:模型里<b>找不到任何一句训练语料</b>。几万亿词的语料,压进几百 GB 的参数——装不下的。那它存的到底是什么?</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第三课 模型≠数据库 ======================== -->
+<section class="chapter" id="c3">
+  <div class="ch-head"><span class="ch-no">第三课</span><h2>模型 ≠ 数据库:它是一次巨大的有损压缩</h2><span class="en">lossy compression</span></div>
+  <p class="ch-lede">数据库存原文,查询返回精确记录;模型把语料<b>压缩成统计规律</b>,回答时按概率<b>重构</b>一个答案。理解这一点,你就知道什么问题该问它、什么不该。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>它存的不是句子,是比例——你亲手改改看</h3>
+    <div class="widget">
+      <div class="w-title">往玩具模型的语料里加句子,观察「天气 很 ___」的概率怎么变</div>
+      <div class="mem-count" id="memCount"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="memAddGood">+ 加一句「…很 好」</button>
+        <button class="btn ghost" id="memAddCold">+ 加一句「…很 冷」</button>
+        <button class="btn ghost" id="memReset">重置</button>
+      </div>
+      <div style="max-width:460px;margin-top:12px">
+        <div class="bar-row"><span class="w">好</span><div class="bar-track"><div class="bar-fill" id="memB0"></div></div><span class="pv" id="memP0"></span></div>
+        <div class="bar-row"><span class="w">冷</span><div class="bar-track"><div class="bar-fill" id="memB1"></div></div><span class="pv" id="memP1"></span></div>
+      </div>
+      <div class="gd-msg" id="memMsg"></div>
+      <p class="small" style="margin-top:8px">无论语料里有 4 句还是 400 句,模型的"记忆"都只是这个<b>比例</b>。原句本身没有被存储——只有它们留下的统计痕迹。(高频重复的片段会被"背下来"逼近原文,这是压缩的极端情形,也是版权争议的来源。)</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">对 比</span>
+    <h3>体积对不上,就是最直接的证据</h3>
+    <div class="fbox" style="text-align:left">
+      <div class="cmp2">
+        <div class="c2row"><span class="c2l">训练语料(文本)</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#5C6B82"></div></div><span class="c2v">~ 数十 TB</span></div>
+        <div class="c2row"><span class="c2l">模型参数</span><div class="bar-track"><div class="bar-fill" style="width:2.5%"></div></div><span class="c2v">~ 几百 GB</span></div>
+      </div>
+      <div class="fnote" style="margin-top:14px">压缩比约百分之一,且<b>不可逆</b>——这不是 zip(能原样解压),而更像人读完一万本书后的"学识":书没背下来,但规律、风格、事实间的关联都在。回答问题 = 用这些规律<b>现场重构</b>一个答案。重构,所以流畅;有损,所以会错。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">实用分工从此清晰:<b>问它"是什么/怎么做/帮我写"</b>(规律与生成,压缩保留得最好);<b>别单独指望它"某年某文第几条"</b>(精确记录,压缩最先丢掉的东西)——精确的部分交给搜索/数据库/RAG,再让模型基于查到的内容作答(第四册第三课:把事实放进窗口)。这也是"联网搜索 + 大模型"成为标配的原因:两种存储,各干各的。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson3_compression.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math, random
+random.seed(0)
+
+def train_and_ask(corpus):
+    vocab = sorted(set(corpus)); n = len(vocab)
+    idx = {w: i for i, w in enumerate(vocab)}
+    W = [[random.uniform(-.1, .1) for _ in range(n)] for _ in range(n)]
+    for _ in range(120):
+        for a, b in zip(corpus[:-1], corpus[1:]):
+            ex = [math.exp(v) for v in W[idx[a]]]; s = sum(ex)
+            for j in range(n):
+                W[idx[a]][j] -= .5 * (ex[j]/s - (1 if j == idx[b] else 0))
+    ex = [math.exp(v) for v in W[idx["很"]]]; s = sum(ex)
+    return {w: ex[idx[w]]/s for w in ("好", "冷")}
+
+for good, cold in [(3, 1), (1, 1), (1, 3)]:
+    corpus = ("天气 很 好 。 " * good + "天气 很 冷 。 " * cold).split()
+    p = train_and_ask(corpus)
+    print(f"语料:{good} 句'好' + {cold} 句'冷'  →  p(好)={p['好']:.2f}  p(冷)={p['冷']:.2f}")
+# 模型"记住"的只是比例——原句一个都没存。
+# 数据库查询返回记录;模型回答重构答案。这是两种完全不同的东西。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q3" data-fbok="正确——压缩保留规律、丢弃记录;生成靠重构,检索靠原文。" data-fbbad="想想压缩最先丢掉什么、最能保留什么。">
+      <h3>下面哪类任务最不该单独交给(不联网的)大模型?</h3><button class="q-opt" data-ok="0">把一段话改写得更礼貌</button><button class="q-opt" data-ok="1">查某条法规第几条第几款的原文</button><button class="q-opt" data-ok="0">解释一个物理概念</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 毕业测验 ======================== -->
+<section class="chapter" id="c7">
+  <div class="ch-head"><span class="ch-no">毕 业</span><h2>终极迁移测验:像内行一样判断</h2><span class="en">final transfer test</span></div>
+  <p class="ch-lede">四道判断题,全对即全系列毕业:</p>
+  <div class="w-grid">
+    <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回看第一课:训练前用小模型的曲线外推——可预测的是罚分,不是具体能力。">
+      <h3>① 训练一个超大模型前,工程团队能提前知道什么?</h3><button class="q-opt" data-ok="1">最终罚分(用小模型外推 scaling law),但具体能力未必</button><button class="q-opt" data-ok="0">什么都无法预知,只能赌</button><button class="q-opt" data-ok="0">连它会写什么诗都能精确预测</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="第二课使用铁律:流畅度与可信度无关。">
+      <h3>② 模型引用了一篇标题、作者、年份俱全的论文,你应该?</h3><button class="q-opt" data-ok="0">格式这么完整,基本可信</button><button class="q-opt" data-ok="1">照样核验——编造的引用和真实引用一样流畅、一样自信</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="把事实放进上下文窗口(第四册第三课),模型基于眼前的原文作答——这正是补'有损压缩'短板。">
+      <h3>③ "联网搜索 + 大模型"组合有效,是因为?</h3><button class="q-opt" data-ok="1">检索负责精确原文,放进窗口;模型负责理解与组织——两种存储各补所短</button><button class="q-opt" data-ok="0">联网时模型参数会实时更新</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确——机制上它每一步都在算下一个 token 的概率分布;'理解'与否是哲学争论,但机制没有争议。" data-fbbad="回到第一册第四课:它执行的是哪个公式?">
+      <h3>④ 剥去所有产品包装,推理时模型每一步在做的事是?</h3><button class="q-opt" data-ok="0">在内部知识库里检索答案</button><button class="q-opt" data-ok="1">基于窗口内全部内容,算出下一个 token 的概率分布,然后掷骰子</button><button class="q-opt" data-ok="0">和你建立情感连接</button><div class="q-fb"></div></div>
+  </div>
+  <div class="verify" id="gradBox" data-done="🎓🎓 全系列毕业!你已经能从机制出发判断它能做什么、不能做什么、该信几分——这就是'看懂'的意思。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
+</section>
+
+<!-- ======================== 大结局 ======================== -->
+<section class="chapter" id="c9">
+  <div class="ch-head"><span class="ch-no">大结局</span><h2>五册合卷:整个故事,一段话讲完</h2><span class="en">the whole story</span></div>
+  <div class="finale">
+    <h3>现在,你可以这样向任何人解释大模型:</h3>
+    <p>文字被切成 token、变成向量、注入位置(<b>第二册</b>);几十层"多头 Attention 搬运 + FFN 加工"反复提炼,残差直通道让深楼不塌(<b>第三册</b>);末端打分、softmax 变概率,训练时用交叉熵罚分、反向传播求梯度、梯度下降微调几百亿参数,重复几百万次(<b>第一册</b>);再经 SFT 与 RLHF 驯化成助手,推理时带着温度和 top-p 掷骰子逐词接龙,视野限于上下文窗口(<b>第四册</b>);它的能力随规模按幂律兑现,它的流畅与真实无关,它不是数据库,而是一场持续重构的有损压缩(<b>第五册</b>)。</p>
+    <p style="margin-top:12px"><b>没有魔法,只有机制。</b>而每一个机制,你都亲手拨过它的滑块。</p>
+    <div class="btn-row" style="margin-top:18px">
+      <a class="btn" href="index.html" style="text-decoration:none">回总目录,查漏补缺 →</a>
+      <a class="btn ghost" href="01-formulas.html" style="text-decoration:none">重读第一册(会有新体会)</a>
+    </div>
+  </div>
+</section>
+
+<footer>看懂大模型 · 第五册 边界与真相 —— 全系列完。所有计算都在你的浏览器里实时进行。</footer>
+</main>
+
+<script src="assets/common.js"></script>
+<script>
+/* ==================== 第一课 Scaling ==================== */
+const SC={W:700,H:300,pl:56,pr:18,pt:16,pb:40,emin:6,emax:12,alpha:0.076,a:12};
+const scL=e=>SC.a/Math.pow(10,e*SC.alpha);
+const scX=e=>SC.pl+(e-SC.emin)/(SC.emax-SC.emin)*(SC.W-SC.pl-SC.pr);
+const Lmin=scL(SC.emax)*0.9, Lmax=scL(SC.emin)*1.05;
+const scY2=L=>{const t=(Math.log(L)-Math.log(Lmin))/(Math.log(Lmax)-Math.log(Lmin));return SC.pt+(1-t)*(SC.H-SC.pt-SC.pb);};
+const SC_MS=[[8,'早期语言模型'],[9.2,'GPT-2 级'],[11.2,'GPT-3 级'],[12,'新一代(示意)']];
+function scInit(){
+  let d='';
+  for(let e=SC.emin;e<=SC.emax+1e-9;e+=0.05) d+=(d?'L':'M')+f2(scX(e),1)+' '+f2(scY2(scL(e)),1)+' ';
+  $('#scSvg').innerHTML=`
+   <line x1="${SC.pl}" y1="${SC.H-SC.pb}" x2="${SC.W-SC.pr}" y2="${SC.H-SC.pb}" stroke="#B9C4D2"/>
+   <line x1="${SC.pl}" y1="${SC.pt}" x2="${SC.pl}" y2="${SC.H-SC.pb}" stroke="#B9C4D2"/>
+   ${[6,8,10,12].map(e=>`<text x="${scX(e)}" y="${SC.H-16}" font-size="11" fill="#5C6B82" text-anchor="middle">10^${e}</text>`).join('')}
+   <text x="${scX(9)}" y="${SC.H-2}" font-size="11" fill="#5C6B82" text-anchor="middle">参数量(对数轴)→</text>
+   <text x="${SC.pl-42}" y="${SC.pt+12}" font-size="11" fill="#5C6B82">罚分 L</text>
+   <text x="${SC.pl-42}" y="${SC.pt+26}" font-size="10" fill="#5C6B82">(对数轴)</text>
+   ${SC_MS.map(([e,t])=>`<g><line x1="${scX(e)}" y1="${SC.pt}" x2="${scX(e)}" y2="${SC.H-SC.pb}" stroke="#DDE4EC" stroke-dasharray="3 4"/>
+     <text x="${scX(e)-4}" y="${SC.pt+12}" font-size="10" fill="#8B98AC" text-anchor="end" transform="rotate(0)">${t}</text></g>`).join('')}
+   <path d="${d}" fill="none" stroke="#0E7C7B" stroke-width="3"/>
+   <circle id="scDot" r="9" fill="#FFE163" stroke="#1F2B3E" stroke-width="2.5"/>`;
+  scRender();
+}
+const SC_AB=[[6,'🔤 勉强拼出通顺短语'],[8,'📝 语法基本正确,常跑题'],[9.2,'📄 成段连贯文本,能翻译'],[10.5,'💬 按几个示例学新任务(涌现·示意)'],[11.2,'🧩 多步推理、写代码(涌现·示意)'],[12,'🎯 接近当前旗舰模型']];
+function scRender(){
+  const e=+$('#scN').value, L=scL(e);
+  const sup='⁰¹²³⁴⁵⁶⁷⁸⁹';
+  const eint=Math.round(e*10)/10;
+  $('#scNv').textContent='10^'+eint;
+  const names={6:'100 万',7:'1000 万',8:'1 亿',9:'10 亿',10:'100 亿',11:'1000 亿',12:'1 万亿'};
+  const near=Math.round(e);
+  $('#scP').textContent=(names[near]||'10^'+eint)+(near===e?'':' 左右');
+  $('#scL').textContent=f2(L,3);
+  $('#scDot').setAttribute('cx',scX(e)); $('#scDot').setAttribute('cy',scY2(L));
+  let ab=SC_AB[0][1];
+  for(const[th,t]of SC_AB){ if(e>=th) ab=t; }
+  $('#scAbility').innerHTML='解锁能力(示意):<b>'+ab+'</b>';
+  $('#scMsg').textContent =
+    e>=11.5?'注意:曲线仍在平滑下降,从没有"突变"——突变的是具体能力的涌现,不是罚分。':
+    e>=9?'参数每翻 10 倍,罚分稳定下降一小格。直线般的可预测性,就是几百亿美元敢往里投的底气。':
+    '从玩具规模开始往右拖,重点看:罚分的下降有多"平滑"。';
+}
+$('#scN').addEventListener('input',scRender);
+scInit();
+
+/* ==================== 第二课 幻觉 ==================== */
+const HAL={
+ known:{pre:['李白','是'],steps:[['诗人',0.92,false],['。',0.95,false]],
+  msg:'✓ 语料里有这句原话,接得又准又自信。——到这一步,和"记住了"没区别。'},
+ unknown:{pre:['曹操','的'],steps:[['朋友',0.88,false],['是',0.90,false],['诗人',0.67,true],['。',0.94,false]],
+  msg:'语料里根本没有「曹操的朋友」!它把「的→朋友」「朋友→是」「是→诗人」三段各自常见的碎片流畅地缝在一起——每一步都很自信,合起来却是编造。这就是幻觉的解剖图。'}};
+let halTimer=null;
+function halPlay(key){
+  if(halTimer){clearInterval(halTimer);halTimer=null;}
+  const cfg=HAL[key];
+  const out=$('#halOut');
+  out.innerHTML=cfg.pre.map(w=>`<span class="hal-tok">${w}</span>`).join('')+'<span class="ar-cursor">▌</span>';
+  $('#halMsg').textContent='接龙中…注意每一步的自信度。';
+  let i=0;
+  halTimer=setInterval(()=>{
+    if(i>=cfg.steps.length){
+      clearInterval(halTimer);halTimer=null;
+      $('#halMsg').textContent=cfg.msg;
+      out.querySelector('.ar-cursor')?.remove();
+      return;
+    }
+    const[w,p,wrong]=cfg.steps[i++];
+    const cur=out.querySelector('.ar-cursor');
+    const el=document.createElement('span');
+    el.className='hal-tok gen'+(wrong?' wrong':'');
+    el.innerHTML=w+`<span class="hal-conf">${(p*100).toFixed(0)}%</span>`;
+    out.insertBefore(el,cur);
+  },650);
+}
+$('#halKnown').addEventListener('click',()=>halPlay('known'));
+$('#halUnknown').addEventListener('click',()=>halPlay('unknown'));
+
+/* ==================== 第三课 比例记忆 ==================== */
+let memG=3,memC=1;
+function memRender(){
+  const tot=memG+memC,pg=memG/tot,pc=memC/tot;
+  $('#memCount').innerHTML=
+    `<span class="mem-chip">「…很 好」× <b>${memG}</b></span><span class="mem-chip">「…很 冷」× <b>${memC}</b></span><span class="mem-chip">模型实际存下的:p(好)=${f2(pg)}</span>`;
+  $('#memB0').style.width=(pg*100)+'%'; $('#memP0').textContent=(pg*100).toFixed(0)+'%';
+  $('#memB1').style.width=(pc*100)+'%'; $('#memP1').textContent=(pc*100).toFixed(0)+'%';
+  $('#memMsg').textContent =
+    memG+memC>12?'句子加了这么多,模型的"记忆"仍然只是一个比例——它一句原文都没存。':
+    pg===pc?'五五开:两种说法一样常见,模型就一样犹豫。':
+    `比例 ${memG}:${memC} → 概率 ${(pg*100).toFixed(0)}%:${(pc*100).toFixed(0)}%。模型存的是这个比例,不是那 ${memG+memC} 句话本身。`;
+}
+$('#memAddGood').addEventListener('click',()=>{memG++;memRender();});
+$('#memAddCold').addEventListener('click',()=>{memC++;memRender();});
+$('#memReset').addEventListener('click',()=>{memG=3;memC=1;memRender();});
+memRender();
+</script>
+</body>
+</html>

@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一册 · 五个公式:训练闭环 | 看懂大模型</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-prog-total="14">
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">五个公式</span>
+    <a class="nav-chip" href="#c0" data-nav="c0">0 符号</a>
+    <a class="nav-chip" href="#c1" data-nav="c1">1 Softmax</a>
+    <a class="nav-chip" href="#c2" data-nav="c2">2 交叉熵</a>
+    <a class="nav-chip" href="#c3" data-nav="c3">3 梯度下降</a>
+    <a class="nav-chip" href="#c4" data-nav="c4">4 自回归</a>
+    <a class="nav-chip" href="#c5" data-nav="c5">5 Attention</a>
+    <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
+    <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
+    <a class="nav-chip" href="#c8" data-nav="c8">终极彩蛋</a>
+    <span class="nav-chip" id="navProg">掌握 0/14</span>
+  </div>
+  <div class="series-in">
+    <a class="sbook" href="index.html">📖 总目录</a>
+    <a class="sbook cur" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<!-- ======================== 首页 ======================== -->
+<header class="hero" id="top">
+  <h1>看懂大模型，<br>只需要<span class="hl">亲手玩坏</span>五个公式。</h1>
+  <p class="lead">不用任何数学基础。每一课你都会先动手拨动几个滑块，等你自己发现规律之后,公式才会登场——那时它只是把你刚刚发现的事情写短一点而已。五课台阶,从最简单的一级开始爬:</p>
+  <div class="stairs">
+    <div class="stair" data-go="c1"><div class="no">第一课</div><div class="nm">Softmax</div><div class="fm">分数 → 概率</div></div>
+    <div class="stair" data-go="c2"><div class="no">第二课</div><div class="nm">交叉熵</div><div class="fm">给预测打分</div></div>
+    <div class="stair" data-go="c3"><div class="no">第三课</div><div class="nm">梯度下降</div><div class="fm">让错误变小</div></div>
+    <div class="stair" data-go="c4"><div class="no">第四课</div><div class="nm">自回归</div><div class="fm">逐词接龙</div></div>
+    <div class="stair" data-go="c5"><div class="no">第五课</div><div class="nm">Attention</div><div class="fm">词与词对视</div></div>
+  </div>
+  <p class="note">每一级台阶只引入一个新想法,其余全是你已经认识的老朋友。建议按顺序爬。</p>
+</header>
+
+<!-- ======================== 第〇课 符号急救包 ======================== -->
+<section class="chapter" id="c0">
+  <div class="ch-head"><span class="ch-no">第〇课</span><h2>符号急救包:先把"外语"翻译掉</h2><span class="en">notation first-aid</span></div>
+  <p class="ch-lede">数学符号忘光了也完全没关系——本页用到的符号<b>全部</b>列在下面,而且它们本质上都只是缩写,不是魔法。现在扫一眼混个脸熟即可,<b>不必背</b>;之后学到任何一课卡住了,点右下角的 <b>√?</b> 浮窗,符号表随时弹出来,不用翻回这里。</p>
+
+  <div class="widget">
+    <div class="w-title">全页唯一需要一点"手感"的一对符号:<span class="mi">e<sup>x</sup></span> 和 ln 互为反操作,拨一下就懂</div>
+    <div class="slider-row" style="max-width:440px"><label>x</label><input type="range" id="c0x" min="-3" max="3" step="0.1" value="1.0"><span class="val" id="c0xv">1.0</span></div>
+    <div class="readout">
+      <div class="cell">e<sup>x</sup> = e<sup><span id="c0xe">1.0</span></sup> = <b id="c0ex">2.72</b></div>
+      <div class="cell">反过来:ln(<span id="c0exin">2.72</span>) = <b id="c0ln">1.0</b> &nbsp;<span style="color:#5C6B82">← 又回到 x</span></div>
+    </div>
+    <div class="gd-msg" id="c0note"></div>
+  </div>
+
+  <div class="widget">
+    <div class="w-title">变量账本 · 全页会出现六种数字,千万别串了角色</div>
+    <div id="ledgerMain"></div>
+  </div>
+
+  <div class="widget" id="symTableMain"></div>
+
+  <div class="stage" style="margin-top:18px">
+    <div class="backline">一个通用心法:公式里的每个符号,要么是<b>一个数</b>(如 e、η),要么是<b>一个编号</b>(如下标 i),要么是<b>一个动作的缩写</b>(如 Σ=全加起来、∏=全乘起来、ln=问"e 的几次方")。遇到看不懂的,先问自己:它是数、编号,还是动作?</div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary><div class="pynote">点「▶ 运行」会在你的浏览器里加载一个真正的 Python 引擎(首次需联网下载,约 10~20 秒,之后秒开);也可以复制到你自己的电脑上运行。每段代码都只用标准库,十行上下——你害怕的东西,就这么大。</div>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson0_symbols.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+x = 1.0
+print("e        =", math.e)                    # 自然常数 ≈ 2.718
+print("e**x     =", math.exp(x))
+print("拉链拉回  =", math.log(math.exp(x)))      # ln 是 e**x 的反操作
+print("ln(0.01) =", math.log(0.01))            # 接近 0 的数,对数是很大的负数</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+</section>
+
+<!-- ======================== 第一课 SOFTMAX ======================== -->
+<section class="chapter" id="c1">
+  <div class="ch-head"><span class="ch-no">第一课</span><h2>Softmax:把分数变成概率</h2><span class="en">softmax</span></div>
+  <p class="ch-lede">大模型说话前,内心其实是在给每个候选词打分。但"打分"没法直接用——我们需要把分数变成"可能性"。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>模型看到「今天天气很 ___」,该接哪个词?</h3>
+    <p>模型内部会给词表里每个词打一个分数(叫 <b>logit</b>),分数可正可负,加起来也不等于任何固定值。比如「好」得 2.0 分,「冷」得 0.5 分,「糟」得 −1.0 分。分数高说明模型更倾向这个词——但"2.0 分"到底是多大的把握?我们需要把它翻译成百分比。</p>
+    <details class="whence"><summary>那分数本身又是从哪来的?(可先跳过,第五课会闭环回来)</summary>
+      <p class="small" style="margin-top:8px">每个词的分数 = 上下文向量 · 该词的输出权重(就是一次点积)。用第五课将会算出的融合向量 <span class="mi">h</span> = (1.17, 0.39):</p>
+      <table class="wt"><tr><th>候选词</th><th>输出权重 W</th><th>点积 h·W</th><th>分数 z</th></tr>
+      <tr><td>好</td><td>(1.5, 0.62)</td><td>1.17×1.5 + 0.39×0.62</td><td><b>≈ 2.0</b></td></tr>
+      <tr><td>冷</td><td>(0.2, 0.68)</td><td>1.17×0.2 + 0.39×0.68</td><td><b>≈ 0.5</b></td></tr>
+      <tr><td>糟</td><td>(−1.0, 0.44)</td><td>1.17×(−1.0) + 0.39×0.44</td><td><b>≈ −1.0</b></td></tr></table>
+      <p class="small" style="margin-top:8px">对,滑块的三个默认值就是这么来的——本页所有数字是同一个故事。</p>
+    </details>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>先别看公式,拨动分数试试</h3>
+    <div class="widget">
+      <div class="ctx-sent">今天天气很<span class="blank" id="smPick">?</span></div>
+      <div class="w-grid">
+        <div>
+          <div class="w-title">分数(模型的内心打分)</div>
+          <div class="slider-row"><label>「好」z<sub>1</sub></label><input type="range" id="z0" min="-5" max="5" step="0.1" value="2.0"><span class="val" id="zv0">2.0</span></div>
+          <div class="slider-row"><label>「冷」z<sub>2</sub></label><input type="range" id="z1" min="-5" max="5" step="0.1" value="0.5"><span class="val" id="zv1">0.5</span></div>
+          <div class="slider-row"><label>「糟」z<sub>3</sub></label><input type="range" id="z2" min="-5" max="5" step="0.1" value="-1.0"><span class="val" id="zv2">-1.0</span></div>
+          <div class="slider-row"><label>温度 T</label><input type="range" id="temp" min="0.1" max="5" step="0.1" value="1.0"><span class="val" id="tempv">1.0</span></div>
+          <div class="gd-msg" id="tempNote"></div>
+        </div>
+        <div>
+          <div class="w-title">概率(翻译结果,永远加起来 = 100%)</div>
+          <div class="bar-row"><span class="w">好</span><div class="bar-track" data-hg="sm-num"><div class="bar-fill" id="smb0"></div></div><span class="pv" id="smp0"></span></div>
+          <div class="bar-row"><span class="w">冷</span><div class="bar-track"><div class="bar-fill" id="smb1"></div></div><span class="pv" id="smp1"></span></div>
+          <div class="bar-row"><span class="w">糟</span><div class="bar-track"><div class="bar-fill" id="smb2"></div></div><span class="pv" id="smp2"></span></div>
+          <div class="calc-line" id="smCalc" data-hg="sm-den"></div>
+        </div>
+      </div>
+      <p class="small" style="margin-top:12px">试着:① 把「好」的分数拉到最高,看概率怎么变;② 把三个分数<b>同时加 3 分</b>,概率变了吗?③ 把温度 T 拉到 0.1,再拉到 5,观察柱子的形状。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>你刚才玩的东西,写下来就是它</h3>
+    <p>规则其实只有两条:① 给每个分数取指数 e<sup>z</sup>(保证结果是正数,且分数越高放大越狠);② 除以所有指数之和(保证加起来恰好是 1)。鼠标放到公式的任何部分上,对应的东西会亮起来:</p>
+    <div class="fbox" id="smF">
+      <div class="formula">
+        <span class="term" data-g="sm-p" data-tip="<b>p(词<sub>i</sub>)</b>:第 i 个词的概率——右边概率柱子显示的就是它">p(词<sub>i</sub>)</span><span class="op">=</span><span class="frac"><span class="top"><span class="term" data-g="sm-num" data-tip="<b>e<sup>z<sub>i</sub></sup></b>:把这个词的分数取指数。分数每加 1,数值大约放大 2.7 倍——所以高分被指数狠狠奖励">e<sup>z<sub>i</sub></sup></span></span><span class="bot"><span class="term" data-g="sm-den" data-tip="<b>Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></b>:所有词的指数加在一起当分母,这样所有概率之和恰好等于 1(=100%)">Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></span></span></span>
+      </div>
+      <div class="tip" id="smTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">带温度的版本只是先把分数除以 T 再照做:<code class="mi">p<sub>i</sub> = e<sup>z<sub>i</sub>/T</sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub>/T</sup></code>。T 越小,差距被放得越大,分布越"极端";T 越大越"平均"。这就是你在别处听到的"温度采样"。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>用一个能口算(几乎)的例子核对</h3>
+    <div class="verify">
+      分数 z = (2.0, 0.5, −1.0),T=1:<br>
+      <span class="mono">e<sup>2.0</sup> ≈ 7.39 &nbsp;&nbsp; e<sup>0.5</sup> ≈ 1.65 &nbsp;&nbsp; e<sup>−1.0</sup> ≈ 0.37 &nbsp;&nbsp;→&nbsp; 和 ≈ 9.41</span><br>
+      <span class="mono">p(好) = 7.39 / 9.41 ≈ <b>0.79</b> &nbsp;&nbsp; p(冷) ≈ <b>0.18</b> &nbsp;&nbsp; p(糟) ≈ <b>0.04</b></span><br>
+      回到上面的滑块,把数值调回 2.0 / 0.5 / −1.0,看看柱子是不是正好这三个数。<b>公式没有骗你。</b>
+      <div class="try" data-exp="0.333" data-tol="0.01" data-key="t1"><span>✍️ 轮到你:若三个分数都是 1.0,p(好) = ?</span><input type="number" step="0.001" class="t-in" placeholder="0.???"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">GPT 每生成一个字之前,都对词表里的<b>几万到十几万个词</b>做一次你刚才做的事:打分 → softmax → 得到一整排概率,再从中挑一个词。你调的"温度"参数,就是 ChatGPT 接口里那个真实的 temperature。</div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson1_softmax.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def softmax(scores, T=1.0):
+    ex = [math.exp(z / T) for z in scores]     # ① 取指数:全变正数
+    total = sum(ex)
+    return [e / total for e in ex]             # ② 除以总和:加起来=1
+
+scores = [2.0, 0.5, -1.0]                      # 好 / 冷 / 糟
+for word, p in zip("好冷糟", softmax(scores)):
+    print(word, round(p, 2))                   # 应得 0.79 / 0.18 / 0.04
+
+print("低温 T=0.2:", [round(p,2) for p in softmax(scores, T=0.2)])
+print("高温 T=5.0:", [round(p,2) for p in softmax(scores, T=5.0)])</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q1" data-fbok="答对了!softmax 只看分数之间的差距——上面实验②你试过的。" data-fbbad="再回去做实验②:三个分数同时加 3,柱子动了吗?">
+      <h3>把三个分数同时都加上 5 分,概率会怎样?</h3><div><span class="q-fml">p(词<sub>i</sub>) = e<sup>z<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></span></div><button class="q-opt" data-ok="0">全都变大</button><button class="q-opt" data-ok="1">完全不变</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge" id="b12">
+  <span class="btag">串联桥 · 第一课 → 第二课</span>
+  <h3>把你刚调好的概率,直接送进裁判</h3>
+  <p>下面这条链是<b>活的</b>,而且左端滑块和上面第一课「好」的分数滑块<b>是同一个</b>——拖任何一边,另一边会跟着动。看一个分数如何一路流成罚分:</p>
+  <div class="slider-row" style="max-width:420px"><label>z(好)</label><input type="range" id="b12z" min="-5" max="5" step="0.1" value="2.0"><span class="val" id="b12zv">2.0</span></div>
+  <div class="chain">
+    <span class="chip2"><span class="cl">第一课 · 分数</span>z(好) = <b id="b12a">2.0</b></span><span class="chev">→ softmax →</span>
+    <span class="chip2"><span class="cl">第一课 · 概率</span>p(好) = <b id="b12b">0.79</b></span><span class="chev">→ −ln →</span>
+    <span class="chip2"><span class="cl">第二课 · 罚分</span>L = <b id="b12c">0.24</b></span>
+  </div>
+  <div class="gd-msg" id="b12m">试试:怎么拖才能让裁判最满意(L 最小)?又要拖到哪,罚分才会爆炸?</div>
+</div>
+<div class="bridge-link"></div>
+<!-- ======================== 第二课 交叉熵 ======================== -->
+<section class="chapter" id="c2">
+  <div class="ch-head"><span class="ch-no">第二课</span><h2>交叉熵:给预测打分的裁判</h2><span class="en">cross-entropy</span></div>
+  <p class="ch-lede">模型给出了概率,那怎么知道它预测得好不好?我们需要一个"错误程度"的数字——机器学习里叫<b>损失(loss)</b>,你可以理解成高尔夫得分:越低越好。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>正确答案是「好」,模型给「好」79% 的概率,该罚多少分?</h3>
+    <p>训练数据里真实的下一个词是「好」。裁判规则很简单:<b>只看模型分给正确答案的那份概率</b>。给得多,轻罚;给得少,重罚;几乎没给,往死里罚。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>拖动"模型给正确答案的概率",看罚分怎么变</h3>
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">把 p 从 0.10 提到 0.20(翻一倍),和把 p 从 0.50 提到 0.60(加 0.1)——哪个让罚分降得更多?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="x" data-i="0">前者 (0.10→0.20)</button><button class="btn ghost g-opt" data-g="x" data-i="1">后者 (0.50→0.60)</button><button class="btn ghost g-opt" data-g="x" data-i="2">一样多</button></div>
+      <div class="gate-res" id="gres-x">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-x">
+      <div class="w-grid">
+        <div>
+          <div class="slider-row"><label>p(好)</label><input type="range" id="xp" min="0.01" max="0.99" step="0.01" value="0.79"><span class="val" id="xpv">0.79</span></div>
+          <div class="readout">
+            <div class="cell">损失 L = <b id="xloss">0.24</b></div>
+            <div class="cell" data-hg="xe-log">−ln(<span id="xpin">0.79</span>) = <b id="xloss2">0.24</b></div>
+          </div>
+          <div class="gd-msg" id="xVerdict"></div>
+          <div class="btn-row">
+            <button class="btn ghost" data-xp="0.79">自信且正确 (0.79)</button>
+            <button class="btn ghost" data-xp="0.33">纯瞎猜 (0.33)</button>
+            <button class="btn ghost" data-xp="0.04">自信但答错 (0.04)</button>
+          </div>
+        </div>
+        <div>
+          <div class="w-title">罚分曲线:L = −ln(p) &nbsp;<span class="small">注意左端有多陡</span></div>
+          <svg id="xsvg" viewBox="0 0 340 230" width="100%" data-hg="xe-p"></svg>
+        </div>
+      </div>
+      <p class="small" style="margin-top:10px">把滑块拖到最左边(p≈0.01)看看罚分——这就是为什么模型最怕"自信地答错":概率给错对象,罚分会指数级爆炸。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>裁判规则一行写完</h3>
+    <div class="fbox" id="xeF">
+      <div class="formula">
+        <span class="term" data-g="xe-L" data-tip="<b>L</b>:损失,这一步预测的罚分。整个训练的目标就是让它平均起来尽量小">L</span><span class="op">=</span><span class="op">−</span><span class="term" data-g="xe-log" data-tip="<b>ln(·)</b>:自然对数。p 从 1 掉向 0 时,−ln(p) 从 0 缓慢爬升然后急速冲天——轻罚小错,重罚离谱的错">ln</span>&nbsp;<span class="term" data-g="xe-p" data-tip="<b>p(正确词)</b>:模型分给正确答案的概率——它来自上一课的 softmax!这就是两个公式咬合的地方">p(正确词)</span>
+      </div>
+      <div class="tip" id="xeTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">教科书写法是 <code class="mi">L = −Σ y<sub>i</sub>·log(p<sub>i</sub>)</code>,看着吓人。但真实标签 y 只有正确词是 1、其余全是 0,乘完只剩一项——就是上面这行。整句话的损失,就是把每个位置的 L 取平均。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>三个档位,口算感受一下</h3>
+    <div class="verify">
+      <span class="mono">p=0.79 → L = −ln 0.79 ≈ <b>0.24</b>(答对且自信,轻罚)</span><br>
+      <span class="mono">p=0.33 → L = −ln 0.33 ≈ <b>1.11</b>(三选一瞎猜的水平)</span><br>
+      <span class="mono">p=0.04 → L = −ln 0.04 ≈ <b>3.22</b>(把宝押错了地方,重罚)</span><br>
+      用上面的三个按钮逐个核对。顺带一提:大模型新闻里说的"loss 降到 2.0 以下",指的就是这个数的平均值。
+      <div class="try" data-exp="0.69" data-tol="0.025" data-key="t2"><span>✍️ 轮到你:p = 0.5 时,L = −ln 0.5 ≈ ?(可用上面的滑块验证)</span><input type="number" step="0.001" class="t-in" placeholder="0.??"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">训练时,模型读海量文本,在<b>每一个词的位置</b>都做一次"预测下一个词 → 交叉熵打分"。几万亿个位置的罚分平均下来,就是那条著名的、一直往下走的 loss 曲线。下一课的问题是:知道罚分了,<b>怎么让它变小?</b></div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson2_cross_entropy.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def cross_entropy(p_correct):
+    return -math.log(p_correct)                # 整个裁判就这一行
+
+for p in [0.79, 0.33, 0.04]:
+    print(f"p(正确词)={p}   罚分 L = {cross_entropy(p):.2f}")
+# 应得 0.24 / 1.11 / 3.22 —— 和手算验证一致
+# 试试把 0.04 改成 0.001,看罚分怎么爆炸</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q2" data-fbok="正确。交叉熵不奖励自信,只看你给对的那个词多少概率。" data-fbbad="注意:裁判只看 p(正确词)。0.5% 代进 −ln 试试。">
+      <h3>模型以 99% 的信心押了一个错误的词(正确词只分到 0.5%),罚分会?</h3><div><span class="q-fml">L = −ln p(正确词)</span></div><button class="q-opt" data-ok="0">很小,毕竟它很自信</button><button class="q-opt" data-ok="1">巨大——罚的是分给正确答案的概率</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+<div class="bridge" id="b23">
+  <span class="btag">串联桥 · 第二课 → 第三课</span>
+  <h3>可是……罚分究竟由谁决定?</h3>
+  <p>由模型内部的<b>参数</b>决定。下面的旋钮 w 是一个参数:它影响「好」的分数,分数经 softmax 变概率,概率经交叉熵变罚分。于是,<b>罚分成了 w 的一条曲线</b>——拖动 w,亲手把罚分降到最低:</p>
+  <div class="w-grid">
+    <div>
+      <div class="slider-row"><label>参数 w</label><input type="range" id="b23w" min="-1.5" max="4.5" step="0.05" value="-0.5"><span class="val" id="b23wv">-0.50</span></div>
+      <div class="chain">
+        <span class="chip2"><span class="cl">参数</span>w = <b id="b23a">−0.50</b></span><span class="chev">→</span>
+        <span class="chip2"><span class="cl">分数</span>z(好) = <b id="b23z">−1.20</b></span><span class="chev">→</span>
+        <span class="chip2"><span class="cl">概率</span>p(好) = <b id="b23p">0.13</b></span><span class="chev">→</span>
+        <span class="chip2"><span class="cl">罚分</span>L = <b id="b23L">2.04</b></span>
+      </div>
+      <div class="gd-msg" id="b23m"></div>
+    </div>
+    <div>
+      <div class="w-title">罚分 L 随参数 w 变化的曲线 —— 眼熟吗?</div>
+      <svg id="b23svg" viewBox="0 0 340 200" width="100%"></svg>
+    </div>
+  </div>
+</div>
+<div class="bridge-link"></div>
+<!-- ======================== 第三课 梯度下降 ======================== -->
+<section class="chapter" id="c3">
+  <div class="ch-head"><span class="ch-no">第三课</span><h2>梯度下降:蒙着眼下山</h2><span class="en">gradient descent</span></div>
+  <p class="ch-lede">上一课我们有了罚分。模型内部有海量"旋钮"(参数),旋钮位置不同,罚分不同。训练 = 找到让罚分最小的旋钮位置。方法笨得可爱:摸着坡度,一小步一小步往低处挪。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>你站在山坡上,大雾,只能感觉脚下的坡度,怎么走到谷底?</h3>
+    <p>答案:感受哪边是下坡,朝那个方向迈一步;再感受,再迈。横轴是某个参数 w 的取值,纵轴是罚分 L。"脚下的坡度"有个学名叫<b>梯度</b>,"步子多大"叫<b>学习率 η</b>。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>调步子大小,把小球送到谷底(也欢迎把它玩飞)</h3>
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">把学习率 η 调大 10 倍,小球一定会更快到谷底吗?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="gd" data-i="0">一定更快</button><button class="btn ghost g-opt" data-g="gd" data-i="1">不一定,可能更慢甚至失败</button></div>
+      <div class="gate-res" id="gres-gd">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-gd">
+      <svg id="gdsvg" viewBox="0 0 700 300" width="100%"></svg>
+      <div class="slider-row" style="max-width:460px"><label>学习率 η</label><input type="range" id="gdLr" min="0.05" max="5" step="0.05" value="0.6"><span class="val" id="gdLrv">0.60</span></div>
+      <div class="btn-row">
+        <button class="btn" id="gdStep">走一步</button>
+        <button class="btn ghost" id="gdAuto">自动下山 ▶</button>
+        <button class="btn ghost" id="gdReset">重置</button>
+      </div>
+      <div class="readout">
+        <div class="cell" data-hg="gd-w">位置 w = <b id="gdW">−3.40</b></div>
+        <div class="cell" data-hg="gd-L">罚分 L(w) = <b id="gdL">—</b></div>
+        <div class="cell" data-hg="gd-g">坡度 ∇L = <b id="gdG">—</b></div>
+        <div class="cell" data-hg="gd-eta">下一步 = <span id="gdNext">—</span></div>
+      </div>
+      <div class="gd-msg" id="gdMsg">建议实验:η=0.6 正常下山 → η=0.05 磨磨蹭蹭 → η=3 疯狂横跳 → η=4.5 灾难现场。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>整个深度学习的发动机,就这一行</h3>
+    <div class="fbox" id="gdF">
+      <div class="formula">
+        <span class="term" data-g="gd-w" data-tip="<b>w</b>:一个参数(旋钮)的当前值。左边是新值,右边用旧值算——这行公式每执行一次,参数就更新一次">w</span><span class="op">←</span><span class="term" data-g="gd-w" data-tip="<b>w</b>:参数的旧值,从这里出发挪一步">w</span><span class="op">−</span><span class="term" data-g="gd-eta" data-tip="<b>η(学习率)</b>:步长。太小走到天荒地老,太大直接飞出山谷——你刚才亲眼见过">η</span><span class="op">·</span><span class="term" data-g="gd-g" data-tip="<b>∇L(梯度)</b>:罚分对这个参数的坡度。正坡度说明往右是上坡,所以要减去它——永远朝下坡走">∇L(w)</span>
+      </div>
+      <div class="tip" id="gdTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">减号是灵魂:梯度指向<b>上坡</b>方向,减去它就是下坡。真实模型里 w 不是一个数,而是几十亿个数,但每一个都执行同样的这一行。顺带一个彩蛋:对 softmax + 交叉熵这套组合,正确词分数的梯度有个漂亮的闭式解 <b>p(正确) − 1</b>——预测越差(p 越小),推力越大,训练自带"错得越狠改得越多"。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>拿脚下这一步核对</h3>
+    <div class="verify">
+      起点 w = −3.40,此处坡度 ∇L ≈ −2.88,取学习率 η = 0.6:<br>
+      <span class="mono">新 w = −3.40 − 0.6 × (−2.88) = −3.40 + 1.73 = <b>−1.67</b></span><br>
+      坡度是负的(往右是下坡),减去负数等于往右走——方向自动就对了。点一次上面的「走一步」,对照读数里的算式。
+      <div class="try" data-exp="0.6" data-tol="0.01" data-key="t3"><span>✍️ 轮到你:若 w=1.0、∇L=0.8、η=0.5,新 w = ?</span><input type="number" step="0.01" class="t-in" placeholder="?.?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">训练 GPT 时,每读一批文本 → 算交叉熵罚分 → 对<b>几百亿个参数各自求坡度</b>(反向传播干的活)→ 全体参数一起执行这行公式。如此重复几百万次,罚分曲线就一路走低。所谓"训练了三个月、烧了几千万美元",烧的就是这一行的重复执行。</div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson3_gradient_descent.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def L(w):                                      # 第三课那座"山"
+    return 0.28*(w-2.0)**2 + 0.25*math.sin(1.5*w) + 0.7
+
+def grad(w, h=1e-4):                           # 数值坡度
+    return (L(w+h) - L(w-h)) / (2*h)
+
+w, lr = -3.4, 0.6                              # 起点与学习率
+for step in range(12):
+    w = w - lr * grad(w)                       # 整个深度学习的发动机
+    print(f"第{step+1:2d}步   w = {w:7.2f}   罚分 = {L(w):.3f}")
+# 把 lr 改成 4.5 再运行一次,亲眼看"发散"长什么样</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q3" data-fbok="正确——负坡度说明往右是下坡,公式的减号自动把方向掰对。" data-fbbad="把 w ← w − η·∇L 里的 ∇L 换成 −1.3 亲手算一下。">
+      <h3>某时刻梯度 ∇L 是负数,执行一步更新后参数 w 会?</h3><div><span class="q-fml">w ← w − η·∇L(w)</span></div><button class="q-opt" data-ok="1">变大(减去负数=加上正数)</button><button class="q-opt" data-ok="0">变小(梯度为负就该减少)</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge" id="b34">
+  <span class="btag">串联桥 · 第三课 → 第四课</span>
+  <h3>一次预测只是一格;一句话,是一整排格子</h3>
+  <p>前三课的完整流程(预测 → 罚分 → 更新)针对的都是<b>一个位置</b>。可训练文本「今天天气很好」有好几个位置——每一格都是一道独立预测题、各有各的罚分。点每一格看看:</p>
+  <div class="chain" id="b34pos" style="margin-bottom:6px"></div>
+  <div class="chain">
+    <span class="chip2" id="b34d" style="flex:1;min-width:260px"></span>
+  </div>
+  <div class="gd-msg">整句损失 = 三格罚分的平均 = (0.60 + 0.51 + 0.48) ÷ 3 ≈ <b>0.53</b>。而"把这些格子串成整句话"怎么用数学表达?这正是下一课。</div>
+</div>
+<div class="bridge-link"></div>
+<!-- ======================== 第四课 自回归 ======================== -->
+<section class="chapter" id="c4">
+  <div class="ch-head"><span class="ch-no">第四课</span><h2>自回归:一句话是一串接龙</h2><span class="en">autoregressive factorization</span></div>
+  <p class="ch-lede">前三课都在说"预测下一个词"这一小步。可模型输出的是整段话——整段话的概率怎么算?答案:接龙,一步一步,把每步概率乘起来。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>「今天天气很好」这整句话,模型觉得有多大可能?</h3>
+    <p>直接给整句话打分做不到——可能的句子无穷多。但拆成接龙就简单了:先算 P(天气|今天),再算 P(很|今天天气),再算 P(好|今天天气很)……每一步都是第一课的 softmax 输出,乘起来就是整句话的概率。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>你来当模型:每一步从候选里挑一个词</h3>
+    <div class="widget">
+      <div class="ar-sent" id="arSent"></div>
+      <div class="w-grid" style="margin-top:14px">
+        <div>
+          <div class="w-title" id="arOptTitle">下一个词接什么?(括号里是模型给的概率)</div>
+          <div id="arOpts"></div>
+          <div class="btn-row"><button class="btn ghost" id="arReset">重来一句</button></div>
+        </div>
+        <div>
+          <div class="w-title">整句话的概率 = 每一步概率的连乘</div>
+          <div class="ar-chain" id="arChain"></div>
+          <div class="ar-total" id="arTotal"></div>
+          <div class="gd-msg" id="arMsg"></div>
+        </div>
+      </div>
+      <p class="small" style="margin-top:10px">试试两条路线:每步都挑概率最高的(这叫<b>贪心解码</b>),再重来一次故意挑低概率的词——看看整句概率差多少倍,以及句子画风的变化。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>把"接龙"写成数学,就是一串连乘</h3>
+    <div class="fbox" id="arF">
+      <div class="formula">
+        <span class="term" data-g="ar-joint" data-tip="<b>P(w<sub>1</sub>,…,w<sub>n</sub>)</b>:整句话(w<sub>1</sub> 到 w<sub>n</sub> 这串词)的概率——左边面板最下方那个连乘结果">P(w<sub>1</sub>,…,w<sub>n</sub>)</span><span class="op">=</span><span class="term" data-g="ar-prod" data-tip="<b>∏</b>:连乘号,就是 Σ 的乘法版。你每点一次候选词,连乘串就多一个因子">∏<sub>t=1</sub><sup>n</sup></span>&nbsp;<span class="term" data-g="ar-cond" data-tip="<b>P(w<sub>t</sub> | w<sub>1</sub>…w<sub>t−1</sub>)</b>:看着前面所有词,预测第 t 个词的概率——每个因子都是一次 softmax 的输出,第一课的老朋友">P(w<sub>t</sub> | w<sub>1</sub>…w<sub>t−1</sub>)</span>
+      </div>
+      <div class="tip" id="arTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">这一步不是近似,是概率论的恒等式(链式法则)——任何序列的概率都<b>严格等于</b>这串条件概率的乘积。"GPT 只是在预测下一个词"和"GPT 在给整段语言建模",说的是同一件事。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>沿最高概率路线核对</h3>
+    <div class="verify">
+      <span class="mono">P(天气|今天)=0.55 &nbsp; P(很|今天天气)=0.60 &nbsp; P(好|今天天气很)=0.62</span><br>
+      <span class="mono">P(今天天气很好) = 0.55 × 0.60 × 0.62 ≈ <b>0.205</b></span><br>
+      在上面按"天气→很→好"点一遍,看连乘结果是否一致。注意:哪怕每步都很自信,乘几步后总概率也会很小——这正常,因为可能的句子实在太多了。
+      <div class="try" data-exp="0.125" data-tol="0.005" data-key="t4"><span>✍️ 轮到你:若三步概率都是 0.5,整句概率 = ?</span><input type="number" step="0.001" class="t-in" placeholder="0.???"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">ChatGPT 逐字蹦出回答的样子,不是加载动画,而是它<b>真的在一个词一个词地执行这个连乘</b>:算概率 → 挑词 → 把挑中的词接回输入 → 再算下一个。训练目标也由此而来:让训练文本里真实句子的连乘概率尽量大——取个对数,恰好就等价于第二课交叉熵之和最小。</div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson4_autoregressive.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">p_steps = {"天气 | 今天": 0.55,
+           "很 | 今天天气": 0.60,
+           "好 | 今天天气很": 0.62}             # 三个条件概率(来自三次 softmax)
+
+total = 1.0
+for cond, p in p_steps.items():                # ∏ 连乘,就是一个 for 循环
+    total *= p
+    print(f"P({cond}) = {p}    累计连乘 = {total:.4f}")
+
+print("整句概率 ≈", round(total, 3))            # 应得 0.205</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q4" data-fbok="正确。这正是本课那条恒等式的含义。" data-fbbad="回看公式脚注:这不是近似,是概率论的恒等式。">
+      <h3>"GPT 只是在预测下一个词"和"GPT 在给整句话建模",两句话的关系是?</h3><div><span class="q-fml">P(w<sub>1</sub>,…,w<sub>n</sub>) = ∏<sub>t</sub> P(w<sub>t</sub> | w<sub>1</sub>…w<sub>t−1</sub>)</span></div><button class="q-opt" data-ok="0">互相矛盾,后者夸大了</button><button class="q-opt" data-ok="1">同一件事:链式法则保证连乘恒等于整句概率</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge" id="b45">
+  <span class="btag">串联桥 · 第四课 → 第五课</span>
+  <h3>最后一个谜:这些概率表是从哪来的?</h3>
+  <p>第四课里 P(下一个词 | 前文) 那些数字不是天上掉的——模型必须先<b>读懂前文</b>才能给出靠谱的概率。比如预测「小猫追老鼠,因为它 ___」:如果模型不知道「它」指谁,就只能瞎猜。按下开关对比:</p>
+  <div class="btn-row" style="margin-top:4px">
+    <button class="btn ghost" id="b45off">关闭注意力 🙈</button>
+    <button class="btn" id="b45on">打开注意力 👁</button>
+  </div>
+  <div style="max-width:460px;margin-top:12px">
+    <div class="bar-row"><span class="w">饿</span><div class="bar-track"><div class="bar-fill" id="b45b0"></div></div><span class="pv" id="b45p0"></span></div>
+    <div class="bar-row"><span class="w">困</span><div class="bar-track"><div class="bar-fill" id="b45b1"></div></div><span class="pv" id="b45p1"></span></div>
+    <div class="bar-row"><span class="w">开心</span><div class="bar-track"><div class="bar-fill" id="b45b2"></div></div><span class="pv" id="b45p2"></span></div>
+  </div>
+  <div class="chain" style="margin-top:10px">
+    <span class="chip2"><span class="cl">真实下一词「饿」的罚分(第二课)</span>L = −ln p(饿) = <b id="b45L">1.05</b></span>
+  </div>
+  <div class="gd-msg" id="b45m"></div>
+</div>
+<div class="bridge-link"></div>
+<!-- ======================== 第五课 ATTENTION ======================== -->
+<section class="chapter" id="c5">
+  <div class="ch-head"><span class="ch-no">第五课</span><h2>Attention:让词与词互相看见</h2><span class="en">attention</span></div>
+  <p class="ch-lede">最后一块拼图:模型打分之前,得先<b>读懂上下文</b>。「它」指谁?「苹果」是水果还是公司?Attention 就是让每个词环顾四周、决定该看谁的机制——Transformer 的心脏。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>「小猫追老鼠,因为它饿了」——「它」是谁?</h3>
+    <p>你一眼就知道是小猫。模型不知道,它必须计算:让「它」对句子里每个词打一个"相关度",再按相关度把那些词的信息<b>加权混合</b>进自己的表示里。点下面的词,看看每个词都在关注谁:</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩 ①</span>
+    <h3>点一个词作为"提问者",看它的注意力分布</h3>
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">你猜:模型会让「它」最关注句中的哪个词?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="aw" data-i="0">小猫</button><button class="btn ghost g-opt" data-g="aw" data-i="1">老鼠</button><button class="btn ghost g-opt" data-g="aw" data-i="2">饿</button></div>
+      <div class="gate-res" id="gres-aw">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-aw">
+      <div class="attn-words" id="awRow"></div>
+      <div class="attn-cols" id="awCols"></div>
+      <div class="attn-note" id="awNote"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩 ②</span>
+    <h3>拆开引擎盖:三个词的完整流水线,每个数字都可见</h3>
+    <p>每个词随身带三样东西:<b>Q(查询)</b>=我在找什么、<b>K(钥匙)</b>=我是什么、<b>V(内容)</b>=我肚子里的信息。相关度 = Q·K 点积。选一个词当提问者:</p>
+    <div class="widget">
+      <div class="attn-words" id="pipeQRow"></div>
+      <div class="pipe" id="pipeBox"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>四个动作,一行写完——而且中间藏着一位老朋友</h3>
+    <div class="fbox" id="atF">
+      <div class="formula" style="font-size:clamp(1.15rem,2.8vw,1.6rem)">
+        Attention(<span class="term" data-g="at-q" data-tip="<b>Q(查询)</b>:提问者的'我在找什么'。流水线第 ① 步里,选中的词用它去和每把钥匙对表">Q</span>,<span class="term" data-g="at-k" data-tip="<b>K(钥匙)</b>:每个词的'我是什么'。Q·K<sup>T</sup> 一次算出提问者与所有词的相关度分数">K</span>,<span class="term" data-g="at-v" data-tip="<b>V(内容)</b>:每个词实际携带的信息。最后按权重混合的就是它们">V</span>)<span class="op">=</span><span class="term" data-g="at-sm" data-tip="<b>softmax</b>:第一课的老朋友!把相关度分数变成加起来等于 1 的注意力权重">softmax</span>(<span class="frac"><span class="top"><span class="term" data-g="at-qk" data-tip="<b>QK<sup>T</sup></b>:查询和所有钥匙做点积——流水线第 ① 步那排相关度分数">QK<sup>T</sup></span></span><span class="bot"><span class="term" data-g="at-d" data-tip="<b>√d<sub>k</sub></b>:除以向量维度的平方根,防止维度一高点积数值爆炸、softmax 变得过分极端。流水线第 ② 步">√d<sub>k</sub></span></span></span>)<span class="term" data-g="at-v" data-tip="<b>V</b>:用刚得到的权重对各词内容加权求和——流水线第 ④ 步的输出向量">V</span>
+      </div>
+      <div class="tip" id="atTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">读法:相关度(QK<sup>T</sup>)→ 缩放(÷√d<sub>k</sub>)→ 变权重(softmax)→ 按权重混合内容(×V)。真实模型里这套动作有几十个"头"并行、几十层堆叠,但每一份都只是这一行。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>沿流水线核对「它」的第一步</h3>
+    <div class="verify">
+      「它」的 Q=(2.0, 0.4),「小猫」的 K=(1.8, 0.6):<br>
+      <span class="mono">Q·K = 2.0×1.8 + 0.4×0.6 = 3.60 + 0.24 = <b>3.84</b></span><br>
+      在流水线里选中「它」当提问者,第 ① 步里「小猫」那一格应该正是 3.84。后面每一步(÷√2、softmax、加权求和)都可以照此逐格核对。
+      <div class="try" data-exp="1.6" data-tol="0.01" data-key="t5"><span>✍️ 轮到你:「它」的 Q=(2.0, 0.4) 与「老鼠」的 K=(0.9, −0.5) 点积 = ?</span><input type="number" step="0.01" class="t-in" placeholder="?.?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">经过几十层 Attention,每个词的表示都反复吸收了全句(乃至全文)的信息——「它」的向量里已经掺进了大量「小猫」。<b>拿这个融合后的向量去打分(logits),交给 softmax,才有了第一课的起点。</b>五个公式,就此闭环。</div>
+  </div>
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson5_attention.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def softmax(xs):                               # 第一课的老朋友,原封不动
+    ex = [math.exp(x) for x in xs]; s = sum(ex)
+    return [e / s for e in ex]
+
+words = ["它", "小猫", "老鼠"]
+K = {"它": [0.5, 1.0], "小猫": [1.8, 0.6], "老鼠": [0.9, -0.5]}
+V = {"它": [0.2, 0.1], "小猫": [1.5, 0.3], "老鼠": [0.4, 1.1]}
+q = [2.0, 0.4]                                 # 「它」的查询向量 Q
+
+scores  = [q[0]*K[w][0] + q[1]*K[w][1] for w in words]   # ① Q·K 点积
+scaled  = [s / math.sqrt(2) for s in scores]             # ② ÷ √d
+weights = softmax(scaled)                                # ③ 变权重
+h = [sum(weights[i] * V[words[i]][d] for i in range(3))  # ④ 加权混合 V
+     for d in (0, 1)]
+
+print("相关度:", [round(s, 2) for s in scores])   # 「小猫」那格 = 3.84
+print("权 重:", [round(w, 2) for w in weights])
+print("h =", [round(x, 2) for x in h])           # (1.17, 0.39) ← 第一课折叠框里的 h!</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q5" data-fbok="正确——这也是它排在流水线最前端的原因。" data-fbbad="回看流水线第 ④ 步:输出是一个向量,不是概率。">
+      <h3>Attention 这一步算完,直接得到的是什么?</h3><div><span class="q-fml">Attention(Q,K,V) = softmax(QK<sup>T</sup>/√d<sub>k</sub>)·V</span></div><button class="q-opt" data-ok="0">下一个词的最终概率</button><button class="q-opt" data-ok="1">每个词融合了上下文的新向量(概率还要再经过打分和 softmax)</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 总装 ======================== -->
+<section class="chapter" id="c6">
+  <div class="ch-head"><span class="ch-no">总 装</span><h2>一次训练步 = 五个公式各干一件事</h2><span class="en">putting it together</span></div>
+  <p class="ch-lede">恭喜爬完五级台阶。现在把零件装回整机——下面是训练中"读一段文本、更新一次参数"的完整流水线,点任何一块可跳回对应课程复习:</p>
+  <div class="asm">
+    <button class="asm-node" data-go="c5"><div class="an">STEP 1 · 第五课</div><div class="at">Attention</div><div class="ad">每个词环顾上下文,吸收相关词的信息,得到融合后的表示</div><div class="af">softmax(QK<sup>T</sup>/√d<sub>k</sub>)·V</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c1"><div class="an">STEP 2 · 第一课</div><div class="at">Softmax</div><div class="ad">用融合表示给词表打分,再把分数变成下一个词的概率分布</div><div class="af">p<sub>i</sub> = e<sup>z<sub>i</sub></sup>/Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c4"><div class="an">STEP 3 · 第四课</div><div class="at">自回归</div><div class="ad">在每个位置都这样预测下一个词;整句概率 = 各步连乘</div><div class="af">P(句) = ∏<sub>t</sub> P(w<sub>t</sub> | 前文)</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c2"><div class="an">STEP 4 · 第二课</div><div class="at">交叉熵</div><div class="ad">对照真实的下一个词,给每个位置的预测算罚分</div><div class="af">L = −ln p(正确词)</div></button>
+    <span class="asm-arrow">→</span>
+    <button class="asm-node" data-go="c3"><div class="an">STEP 5 · 第三课</div><div class="at">梯度下降</div><div class="ad">对每个参数求坡度,全体旋钮朝罚分更低处微调一格</div><div class="af">w ← w − η·∇L(w)</div></button>
+  </div>
+  <div class="widget" style="margin-top:20px">
+    <div class="w-title">别只看图——按这个按钮,用你已经很熟的那句话,一步一步走完一个真实训练步</div>
+    <div class="btn-row" style="margin-top:0">
+      <button class="btn" id="asmNext">开始走一遍 ▶</button>
+      <button class="btn ghost" id="asmReset">重置</button>
+      <span class="asm-count" id="asmCount"></span>
+    </div>
+    <div class="asm-detail" id="asmDetail">六个步骤,每一步都只用你在前五课亲手算过的数字。上方流水线会同步点亮当前环节。</div>
+  </div>
+  <p class="loop-note">↻ 然后换下一批文本,回到 STEP 1。重复几百万次——这就是"训练一个大模型"的全部含义。推理(聊天)时只走前三步:Attention → Softmax → 挑词接龙,不再打分罚分,也不再更新参数。</p>
+</section>
+
+<!-- ======================== 毕业测验 ======================== -->
+<section class="chapter" id="c7">
+  <div class="ch-head"><span class="ch-no">毕 业</span><h2>迁移测验:换个场景,你还会吗</h2><span class="en">transfer test</span></div>
+  <p class="ch-lede">真正的掌握,是能在<b>没见过的例子</b>上追踪整条链。全新场景:输入「天气很」,模型给的分数是 <b>好 = 1.3、热 = 1.1、猫 = −0.5</b>;训练文本里真实的下一个词是「<b>热</b>」。四题全对才算毕业:</p>
+  <div class="w-grid">
+    <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="不对——沿着「分数→概率→罚分→更新」的链条再追踪一次。">
+      <h3>① 推理(聊天)时,模型此刻最想输出哪个词?</h3><p class="small" style="margin-bottom:8px">不用精确算 softmax——比较分数就够。</p><div><span class="q-fml">p(词<sub>i</sub>) = e<sup>z<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></span></div><button class="q-opt" data-ok="1">好</button><button class="q-opt" data-ok="0">热</button><button class="q-opt" data-ok="0">猫</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="不对——沿着「分数→概率→罚分→更新」的链条再追踪一次。">
+      <h3>② 训练(梯度下降)会朝哪个方向使劲?</h3><p class="small" style="margin-bottom:8px">真实答案是「热」,但「好」分数更高。</p><div><span class="q-fml">w ← w − η·∇L(w)</span></div><button class="q-opt" data-ok="1">提高「热」的相对分数</button><button class="q-opt" data-ok="0">继续提高「好」的分数</button><button class="q-opt" data-ok="0">把所有分数都降低</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="不对——沿着「分数→概率→罚分→更新」的链条再追踪一次。">
+      <h3>③ 这一步的交叉熵罚分,用的是哪个数?</h3><p class="small" style="margin-bottom:8px">裁判规则回忆一下。</p><div><span class="q-fml">L = −ln p( ? )</span></div><button class="q-opt" data-ok="1">p(热)——正确词分到的概率</button><button class="q-opt" data-ok="0">p(好)——最高的那个概率</button><button class="q-opt" data-ok="0">三个概率的平均值</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="不对——沿着「分数→概率→罚分→更新」的链条再追踪一次。">
+      <h3>④ 想让模型输出更"放飞"、更随机,推理时应该?</h3><p class="small" style="margin-bottom:8px">三个旋钮别搞混:T、η、w。</p><div><span class="q-fml">p<sub>i</sub> = e<sup>z<sub>i</sub>/T</sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub>/T</sup></span></div><button class="q-opt" data-ok="1">调高温度 T</button><button class="q-opt" data-ok="0">调低温度 T</button><button class="q-opt" data-ok="0">增大学习率 η</button><div class="q-fb"></div></div>
+  </div>
+  <div class="verify" id="gradBox" data-done="🎓 毕业!你已经能在新场景里独立追踪「分数→概率→罚分→更新」整条链。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
+</section>
+
+<!-- ======================== 终极彩蛋 ======================== -->
+<section class="chapter" id="c8">
+  <div class="ch-head"><span class="ch-no">终极彩蛋</span><h2>三十几行,真的训练一个微型大模型</h2><span class="en">train a toy model</span></div>
+  <p class="ch-lede">这不是演示,是<b>货真价实的训练</b>:随机初始化参数 → 前向打分 → softmax → 交叉熵罚分 → 手写梯度 → 更新参数,循环 60 轮。五个公式在同一份代码里各就各位(注释里标着"第几课")。看着平均罚分从 1.9 掉到 0.4,然后它会开口说出人生第一句话。</p>
+  <div class="pyblock">
+    <div class="pyhead"><span class="pl">train_toy_llm.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+    <pre class="pycode">import math, random
+random.seed(0)
+
+# ── 语料:模型即将学会的全部"世界" ─────────────────────────
+corpus = "今天 天气 很 好 。 今天 天气 很 冷 。 明天 天气 很 好 。 今天 心情 很 好 。".split()
+vocab = sorted(set(corpus))
+n = len(vocab)
+idx = {w: i for i, w in enumerate(vocab)}
+
+# ── 参数:一张「前一个词 → 各候选词分数」的表,随机初始化 ──
+W = [[random.uniform(-0.1, 0.1) for _ in range(n)] for _ in range(n)]
+# 真实模型里,「前一个词」会换成 Attention 融合出的向量 h(第五课),
+# 打分方式则和第一课折叠框里的 h·W 一模一样。
+
+def softmax(z):                                # ← 第一课
+    ex = [math.exp(v) for v in z]; s = sum(ex)
+    return [e / s for e in ex]
+
+pairs = list(zip(corpus[:-1], corpus[1:]))     # ← 第四课:整句 = 逐词接龙
+
+lr = 0.5                                       # ← 第三课:学习率 η
+for epoch in range(60):
+    loss = 0.0
+    for prev, nxt in pairs:
+        p = softmax(W[idx[prev]])              #    打分 → 概率
+        loss += -math.log(p[idx[nxt]])         # ← 第二课:交叉熵
+        for j in range(n):                     # ← 第三课:w ← w − η·∇L
+            g = p[j] - (1 if j == idx[nxt] else 0)   # 闭式梯度 p−1(彩蛋!)
+            W[idx[prev]][j] -= lr * g
+    if epoch % 10 == 0 or epoch == 59:
+        print(f"第{epoch:2d}轮   平均罚分 = {loss/len(pairs):.3f}")
+
+# ── 训练完毕,让它接龙(推理)──────────────────────────────
+w = "今天"
+sent = [w]
+for _ in range(4):
+    p = softmax(W[idx[w]])
+    w = max(vocab, key=lambda x: p[idx[x]])    # 贪心:挑概率最高的词
+    sent.append(w)
+print("模型接龙:", " ".join(sent))</pre>
+    <pre class="pyout" hidden></pre>
+  </div>
+  <div class="backline" style="margin-top:16px">跑通之后的三个实验:① 把 <span class="mono">lr</span> 改成 20,重温第三课的"发散";② 往语料里加一句「明天 心情 很 糟 。」,看模型的世界观怎么变;③ 把接龙起点 <span class="mono">"今天"</span> 换成 <span class="mono">"明天"</span>。改坏了没关系——刷新页面,世界重来。</div>
+</section>
+
+<div class="bridge next-book">
+  <span class="btag">下一册</span>
+  <h3>第二册 · 向量从哪来:分词、Embedding、位置编码</h3>
+  <p>回头看第五课:「它」「小猫」的 Q/K/V 向量,还有第一课的候选词表,都是"天上掉下来的"。下一册补上输入端的三块拼图——文字怎么被切成 token、token 怎么变成向量、顺序信息怎么被注入。看完它,你就知道那些数字是怎么诞生的。</p>
+  <a class="btn" href="02-tokens.html">进入第二册 →</a>
+</div>
+
+<footer>五个公式 · 交互式零基础课 —— 所有计算都在你的浏览器里实时进行,大胆去把每个滑块拉到头。</footer>
+</main>
+<button class="float-help" id="helpBtn" aria-label="打开公式与符号急救包">√?<small>公式·符号</small></button>
+<div class="help-mask" id="helpMask"></div>
+<aside class="help-panel" id="helpPanel" aria-label="公式与符号急救包">
+  <div class="hp-head"><h3>公式 · 符号急救包</h3><button class="hp-close" id="helpClose" aria-label="关闭">×</button></div>
+  <p class="small">忘了哪条公式、哪个符号,在这里查完接着学。点公式可跳回对应课复习。</p>
+  <div class="sym-group"><h4>五个公式速查</h4>
+    <button class="fml-row" data-go="c1"><span class="fl"><span class="fn2">① Softmax</span><span class="fd">分数 → 概率</span><span class="fgo">第一课 ↗</span></span><span class="ff">p(词<sub>i</sub>) = e<sup>z<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">② 交叉熵</span><span class="fd">给预测打分</span><span class="fgo">第二课 ↗</span></span><span class="ff">L = −ln p(正确词)</span></button>
+    <button class="fml-row" data-go="c3"><span class="fl"><span class="fn2">③ 梯度下降</span><span class="fd">让罚分变小</span><span class="fgo">第三课 ↗</span></span><span class="ff">w ← w − η·∇L(w)</span></button>
+    <button class="fml-row" data-go="c4"><span class="fl"><span class="fn2">④ 自回归</span><span class="fd">整句 = 逐步连乘</span><span class="fgo">第四课 ↗</span></span><span class="ff">P(w<sub>1</sub>,…,w<sub>n</sub>) = ∏<sub>t</sub> P(w<sub>t</sub> | w<sub>1</sub>…w<sub>t−1</sub>)</span></button>
+    <button class="fml-row" data-go="c5"><span class="fl"><span class="fn2">⑤ Attention</span><span class="fd">词与词对视</span><span class="fgo">第五课 ↗</span></span><span class="ff">Attention(Q,K,V) = softmax(QK<sup>T</sup>/√d<sub>k</sub>)·V</span></button>
+  </div>
+  <div class="sym-group"><h4>变量账本 · 六种数字的角色</h4><div id="ledgerPanel"></div></div>
+  <div id="symTablePanel"></div>
+</aside>
+<script src="assets/common.js"></script>
+<script>
+
+/* ==================== 第一课 Softmax ==================== */
+const smWords=['好','冷','糟'];
+function smRender(){
+  const T=+$('#temp').value;
+  const z=[0,1,2].map(i=>+$('#z'+i).value);
+  [0,1,2].forEach(i=>$('#zv'+i).textContent=f2(z[i],1));
+  $('#tempv').textContent=f2(T,1);
+  const ex=z.map(v=>Math.exp(v/T)), sum=ex.reduce((a,b)=>a+b,0);
+  const p=ex.map(e=>e/sum);
+  const win=p.indexOf(Math.max(...p));
+  [0,1,2].forEach(i=>{
+    $('#smb'+i).style.width=(p[i]*100)+'%';
+    $('#smb'+i).classList.toggle('win',i===win);
+    $('#smp'+i).textContent=(p[i]*100).toFixed(1)+'%';
+  });
+  $('#smPick').textContent=smWords[win]+' ('+(p[win]*100).toFixed(0)+'%)';
+  $('#smCalc').innerHTML =
+    'e<sup>'+f2(z[0]/T,1)+'</sup>=<b>'+f2(ex[0])+'</b> &nbsp; e<sup>'+f2(z[1]/T,1)+'</sup>=<b>'+f2(ex[1])+'</b> &nbsp; e<sup>'+f2(z[2]/T,1)+'</sup>=<b>'+f2(ex[2])+'</b> &nbsp;→&nbsp; 和=<b>'+f2(sum)+'</b>';
+  $('#tempNote').textContent =
+    T<=0.4?'低温:差距被放大,几乎"一家独大"——输出更确定、更保守。':
+    T>=2.5?'高温:差距被抹平,谁都有机会——输出更随机、更"放飞"。':
+    'T=1 是原味 softmax。试试拉到两端。';
+}
+['z0','z1','z2','temp'].forEach(id=>$('#'+id).addEventListener('input',smRender));
+smRender();
+
+/* ==================== 第二课 交叉熵 ==================== */
+const XS={W:340,H:230,pl:44,pr:12,pt:12,pb:30,Lmax:4.8};
+function xX(p){return XS.pl+(p-0)/(1-0)*(XS.W-XS.pl-XS.pr);}
+function xY(L){return XS.pt+(L/XS.Lmax)*(XS.H-XS.pt-XS.pb);} // L=0 在上? 不,罚分小应在下 → 翻转:
+function xY2(L){return XS.H-XS.pb-(L/XS.Lmax)*(XS.H-XS.pt-XS.pb);}
+function xInit(){
+  const s=$('#xsvg'); let d='';
+  for(let p=0.012;p<=1.0001;p+=0.008){
+    const L=Math.min(-Math.log(p),XS.Lmax);
+    d+=(d?'L':'M')+f2(xX(p),1)+' '+f2(xY2(L),1)+' ';
+  }
+  s.innerHTML=`
+   <line x1="${XS.pl}" y1="${xY2(0)}" x2="${XS.W-XS.pr}" y2="${xY2(0)}" stroke="#B9C4D2"/>
+   <line x1="${XS.pl}" y1="${XS.pt}" x2="${XS.pl}" y2="${xY2(0)}" stroke="#B9C4D2"/>
+   <text x="${xX(0.5)}" y="${XS.H-8}" font-size="11" fill="#5C6B82" text-anchor="middle">p(正确词) →</text>
+   <text x="${xX(0)}" y="${XS.H-14}" font-size="10" fill="#5C6B82">0</text>
+   <text x="${xX(1)}" y="${XS.H-14}" font-size="10" fill="#5C6B82" text-anchor="end">1</text>
+   <text x="14" y="${xY2(4)}" font-size="10" fill="#5C6B82">L=4</text>
+   <text x="14" y="${xY2(2)}" font-size="10" fill="#5C6B82">L=2</text>
+   <text x="14" y="${xY2(0)+4}" font-size="10" fill="#5C6B82">L=0</text>
+   <path d="${d}" fill="none" stroke="#0E7C7B" stroke-width="2.5"/>
+   <circle id="xdot" r="7" fill="#FFE163" stroke="#1F2B3E" stroke-width="2"/>
+   <text id="xdotL" font-size="12" fill="#1F2B3E" font-weight="bold"></text>`;
+  xRender();
+}
+function xRender(){
+  const p=+$('#xp').value, L=-Math.log(p);
+  $('#xpv').textContent=f2(p);
+  $('#xpin').textContent=f2(p);
+  $('#xloss').textContent=f2(L); $('#xloss2').textContent=f2(L);
+  const dot=$('#xdot'), lab=$('#xdotL'), Lc=Math.min(L,XS.Lmax);
+  dot.setAttribute('cx',xX(p)); dot.setAttribute('cy',xY2(Lc));
+  lab.setAttribute('x',Math.min(xX(p)+12,XS.W-70)); lab.setAttribute('y',Math.max(xY2(Lc)-10,16));
+  lab.textContent='L='+f2(L);
+  $('#xVerdict').textContent =
+    p>=0.7?'预测正确且自信 → 罚分很小,模型这一步几乎不用改。':
+    p>=0.25?'不太确定 → 中等罚分,还有明显进步空间。':
+    '把大部分概率押给了错的词 → 重罚!曲线左端近乎垂直。';
+  $('#xVerdict').className='gd-msg'+(p<0.25?' bad':'');
+}
+$('#xp').addEventListener('input',xRender);
+$$('button[data-xp]').forEach(b=>b.addEventListener('click',()=>{
+  $('#xp').value=b.dataset.xp; paintRange($('#xp')); xRender();
+}));
+xInit();
+
+/* ==================== 第三课 梯度下降 ==================== */
+const GD={W:700,H:300,pl:40,pr:16,pt:16,pb:34,wmin:-4,wmax:6.5,Lmin:0,Lmax:10.5,
+  w:-3.4, lr:0.6, trail:[], timer:null, diverged:false};
+const gf=w=>0.28*(w-2.0)**2+0.25*Math.sin(1.5*w)+0.7;
+const ggrad=w=>(gf(w+1e-4)-gf(w-1e-4))/2e-4;
+const gX=w=>GD.pl+(w-GD.wmin)/(GD.wmax-GD.wmin)*(GD.W-GD.pl-GD.pr);
+const gY=L=>GD.H-GD.pb-(L-GD.Lmin)/(GD.Lmax-GD.Lmin)*(GD.H-GD.pt-GD.pb);
+function gdInit(){
+  const s=$('#gdsvg'); let d='';
+  for(let w=GD.wmin;w<=GD.wmax+1e-9;w+=0.06) d+=(d?'L':'M')+f2(gX(w),1)+' '+f2(gY(gf(w)),1)+' ';
+  s.innerHTML=`
+   <line x1="${GD.pl}" y1="${gY(0)}" x2="${GD.W-GD.pr}" y2="${gY(0)}" stroke="#B9C4D2"/>
+   <text x="${gX(1)}" y="${GD.H-8}" font-size="12" fill="#5C6B82">参数 w →</text>
+   <text x="${GD.pl+4}" y="${GD.pt+12}" font-size="12" fill="#5C6B82">罚分 L(w)</text>
+   <path d="${d}" fill="none" stroke="#1F2B3E" stroke-width="2.5"/>
+   <g id="gdTrail"></g>
+   <line id="gdArrow" stroke="#D1495B" stroke-width="3" stroke-linecap="round" opacity="0"/>
+   <circle id="gdBall" r="10" fill="#FFE163" stroke="#1F2B3E" stroke-width="2.5"/>
+   <text id="gdFlag" x="${GD.W/2}" y="${GD.pt+20}" font-size="15" fill="#D1495B" font-weight="bold" text-anchor="middle"></text>`;
+  gdRender();
+}
+function gdRender(msg,bad){
+  GD.lr=+$('#gdLr').value; $('#gdLrv').textContent=f2(GD.lr);
+  $('#gdLr').classList.toggle('hot',GD.lr>2);
+  const w=GD.w, inView=w>=GD.wmin&&w<=GD.wmax;
+  const L=gf(w), g=ggrad(w);
+  const cw=Math.min(Math.max(w,GD.wmin),GD.wmax);
+  const ball=$('#gdBall');
+  ball.setAttribute('cx',gX(cw)); ball.setAttribute('cy',inView?gY(Math.min(L,GD.Lmax)):gY(GD.Lmax));
+  ball.setAttribute('opacity',GD.diverged?0.35:1);
+  /* 梯度方向小箭头 */
+  const ar=$('#gdArrow');
+  if(!GD.diverged&&inView){
+    const dir=-Math.sign(g), len=Math.min(Math.abs(g)*26,60)*dir;
+    ar.setAttribute('x1',gX(cw)); ar.setAttribute('y1',gY(Math.min(L,GD.Lmax))-18);
+    ar.setAttribute('x2',gX(cw)+len); ar.setAttribute('y2',gY(Math.min(L,GD.Lmax))-18);
+    ar.setAttribute('opacity',0.85);
+  } else ar.setAttribute('opacity',0);
+  const tr=$('#gdTrail');
+  tr.innerHTML=GD.trail.slice(-40).map((p,i,a)=>
+    `<circle cx="${f2(gX(Math.min(Math.max(p,GD.wmin),GD.wmax)),1)}" cy="${f2(gY(Math.min(gf(p),GD.Lmax)),1)}" r="4" fill="#0E7C7B" opacity="${(0.15+0.6*i/a.length).toFixed(2)}"/>`).join('');
+  $('#gdW').textContent=Math.abs(w)>999?'∞':f2(w);
+  $('#gdL').textContent=Math.abs(w)>999?'∞':f2(L);
+  $('#gdG').textContent=Math.abs(w)>999?'—':f2(g);
+  $('#gdNext').innerHTML=Math.abs(w)>999?'—':f2(w)+' − '+f2(GD.lr)+'×('+f2(g)+') = <b>'+f2(w-GD.lr*g)+'</b>';
+  $('#gdFlag').textContent=GD.diverged?'💥 学习率太大,小球飞出了山谷!':'';
+  if(msg!==undefined){$('#gdMsg').textContent=msg;$('#gdMsg').className='gd-msg'+(bad?' bad':'');}
+}
+function gdStep(){
+  if(GD.diverged) return;
+  const g=ggrad(GD.w); GD.trail.push(GD.w);
+  GD.w=GD.w-GD.lr*g;
+  if(Math.abs(GD.w)>60){GD.diverged=true; gdStop(); gdRender('发散了:步子太大,每一步都跨到对面更高的坡上。把 η 调小再重置试试。',true); return;}
+  const done=Math.abs(ggrad(GD.w))<0.01;
+  if(done) gdStop();
+  gdRender(done?'✓ 坡度≈0,到谷底了。试试换个学习率,数数各要多少步。':undefined);
+}
+function gdStop(){ if(GD.timer){clearInterval(GD.timer);GD.timer=null;$('#gdAuto').textContent='自动下山 ▶';} }
+$('#gdStep').addEventListener('click',gdStep);
+$('#gdAuto').addEventListener('click',()=>{
+  if(GD.timer){gdStop();return;}
+  if(GD.diverged) return;
+  $('#gdAuto').textContent='暂停 ⏸';
+  GD.timer=setInterval(gdStep,320);
+});
+$('#gdReset').addEventListener('click',()=>{
+  gdStop(); GD.w=-3.4; GD.trail=[]; GD.diverged=false;
+  gdRender('已重置。当前 η='+f2(+$('#gdLr').value)+',开走。');
+});
+$('#gdLr').addEventListener('input',()=>gdRender());
+gdInit();
+
+/* ==================== 第四课 自回归 ==================== */
+/* 节点: [词, 概率, 子候选?] */
+const AR_TREE=[
+ ['天气',0.55,[
+   ['很',0.60,[['好',0.62],['冷',0.20],['糟',0.08]]],
+   ['真',0.25,[['好',0.58],['不错',0.27],['差',0.06]]],
+   ['预报',0.08,[['说',0.70],['显示',0.18],['是',0.05]]]]],
+ ['我',0.22,[
+   ['想',0.40,[['睡觉',0.35],['出门',0.28],['吃火锅',0.12]]],
+   ['要',0.30,[['加班',0.40],['出发',0.25],['开会',0.15]]],
+   ['去',0.18,[['公司',0.38],['学校',0.25],['跑步',0.14]]]]],
+ ['又',0.09,[
+   ['是',0.52,[['周一',0.40],['晴天',0.25],['加班',0.12]]],
+   ['下雨',0.20,[['了',0.75],['天',0.10],['啦',0.08]]],
+   ['加班',0.16,[['了',0.66],['到',0.15],['吗',0.07]]]]]
+];
+let arState;
+function arReset(){ arState={sent:['今天'],factors:[],opts:AR_TREE}; arRender(); }
+function arRender(){
+  const st=arState, done=!st.opts;
+  $('#arSent').innerHTML=st.sent.map((w,i)=>
+    `<span class="ar-tok${i===st.sent.length-1&&i>0?' new':''}">${w}</span>`).join('')
+    +(done?'<span class="ar-tok" style="border-style:dashed">。</span>':'<span class="ar-cursor">▌</span>');
+  $('#arOptTitle').textContent=done?'这句接完了。':'下一个词接什么?(括号里是模型给的概率)';
+  $('#arOpts').innerHTML=done?'<p class="small">点「重来一句」再走一条不同的路线。</p>':
+    st.opts.map((o,i)=>
+      `<button class="ar-opt" data-i="${i}">
+         <span class="ow">${o[0]}</span>
+         <span class="ob"><i style="width:${o[1]*100}%"></i></span>
+         <span class="op2">${(o[1]*100).toFixed(0)}%</span></button>`).join('');
+  $$('#arOpts .ar-opt').forEach(b=>b.addEventListener('click',()=>{
+    const o=st.opts[+b.dataset.i];
+    st.factors.push({ctx:st.sent.join(''),w:o[0],p:o[1]});
+    st.sent.push(o[0]); st.opts=o[2]||null; arRender();
+  }));
+  const total=st.factors.reduce((a,f)=>a*f.p,1);
+  $('#arChain').innerHTML=st.factors.length?
+    st.factors.map(f=>`<span class="ar-chip" title="P(${f.w}|${f.ctx})">P(${f.w}|…)=${f.p}</span>`).join('<span>×</span>'):
+    '<span class="small">还没开始接龙——每选一个词,这里就多一个因子。</span>';
+  $('#arTotal').innerHTML=st.factors.length?
+    'P(整句) = '+st.factors.map(f=>f.p).join(' × ')+' = <b>'+total.toFixed(4)+'</b>':'';
+  $('#arMsg').textContent=done?
+    (total>0.15?'你走的是高概率大道:模型觉得这是句"最正常"的话。':
+     total>0.02?'一条中规中矩的路线。':
+     '你专挑小路走——单步概率不低,连乘后却只剩 '+total.toFixed(4)+'。这就是"每步都合理"和"整句很常见"的区别。'):'';
+}
+$('#arReset').addEventListener('click',arReset);
+arReset();
+
+/* ==================== 第五课 Attention ==================== */
+/* —— 玩法① 整句注意力 —— */
+const AWORDS=['小猫','追','老鼠','因为','它','饿','了'];
+const AMAT={
+ '小猫':[0.16,0.24,0.30,0.04,0.06,0.14,0.06],
+ '追':  [0.34,0.10,0.38,0.03,0.05,0.07,0.03],
+ '老鼠':[0.26,0.30,0.12,0.04,0.06,0.16,0.06],
+ '因为':[0.10,0.08,0.10,0.20,0.14,0.28,0.10],
+ '它':  [0.52,0.04,0.16,0.05,0.08,0.11,0.04],
+ '饿':  [0.30,0.03,0.07,0.05,0.34,0.12,0.09],
+ '了':  [0.08,0.06,0.08,0.10,0.16,0.34,0.18]};
+const ANOTE={
+ '它':'「它」把 52% 的注意力投给「小猫」——模型就是这样解决"它指谁"的。',
+ '饿':'「饿」主要看「它」和「小猫」:谁饿?顺着注意力就追到了主角。',
+ '追':'动词「追」两头看:谁在追(小猫 34%)、追谁(老鼠 38%)。',
+ '小猫':'「小猫」关注自己的动作和对象:追、老鼠。',
+ '老鼠':'「老鼠」回看「追」和「小猫」:我是被追的那个。',
+ '因为':'连接词的注意力比较分散,它在联络前后两个句块。',
+ '了':'语气词信息少,注意力也最"平"。'};
+function awRender(sel){
+  $('#awRow').innerHTML=AWORDS.map(w=>`<button class="aw${w===sel?' sel':''}" data-w="${w}">${w}</button>`).join('');
+  $$('#awRow .aw').forEach(b=>b.addEventListener('click',()=>awRender(b.dataset.w)));
+  const ws=AMAT[sel], mx=Math.max(...ws);
+  $('#awCols').innerHTML=AWORDS.map((w,i)=>
+    `<div class="acol${ws[i]===mx?' max':''}">
+       <div class="stick"><i style="height:${ws[i]/mx*100}%"></i></div>
+       <div class="al">${w}</div><div class="ap">${(ws[i]*100).toFixed(0)}%</div></div>`).join('');
+  $('#awNote').innerHTML='<b>「'+sel+'」在看谁:</b> '+ANOTE[sel];
+}
+awRender('它');
+
+/* —— 玩法② 数字流水线 —— */
+const PW=[
+ {w:'它',  q:[2.0,0.4], k:[0.5,1.0], v:[0.2,0.1]},
+ {w:'小猫',q:[0.8,1.2], k:[1.8,0.6], v:[1.5,0.3]},
+ {w:'老鼠',q:[1.1,0.2], k:[0.9,-0.5],v:[0.4,1.1]}];
+function pipeRender(qi){
+  $('#pipeQRow').innerHTML=PW.map((p,i)=>
+    `<button class="aw${i===qi?' sel':''}" data-i="${i}">${p.w} 提问</button>`).join('');
+  $$('#pipeQRow .aw').forEach(b=>b.addEventListener('click',()=>pipeRender(+b.dataset.i)));
+  const q=PW[qi].q;
+  const dots=PW.map(p=>q[0]*p.k[0]+q[1]*p.k[1]);
+  const sc=dots.map(d=>d/Math.SQRT2);
+  const ex=sc.map(s=>Math.exp(s)), sum=ex.reduce((a,b)=>a+b,0);
+  const al=ex.map(e=>e/sum);
+  const out=[0,1].map(d=>PW.reduce((a,p,i)=>a+al[i]*p.v[d],0));
+  const mx=al.indexOf(Math.max(...al));
+  const row=(arr,fmt)=>PW.map((p,i)=>`${p.w} <b>${fmt(arr[i])}</b>`).join(' &nbsp;·&nbsp; ');
+  $('#pipeBox').innerHTML=`
+   <div class="pstage" data-hg="at-qk"><div class="pt">① 相关度 = Q·K 点积(「${PW[qi].w}」的 Q=(${q.join(', ')}) 逐个对上每把钥匙)</div>
+     <div class="pn">${row(dots,x=>f2(x))}</div></div>
+   <div class="parrow">↓ ÷ √d = √2 ≈ 1.41</div>
+   <div class="pstage" data-hg="at-d"><div class="pt">② 缩放后的分数</div>
+     <div class="pn">${row(sc,x=>f2(x))}</div></div>
+   <div class="parrow">↓ softmax(第一课的老朋友)</div>
+   <div class="pstage" data-hg="at-sm"><div class="pt">③ 注意力权重(加起来 = 1)</div>
+     <div class="pn">${row(al,x=>(x*100).toFixed(1)+'%')}</div></div>
+   <div class="parrow">↓ 按权重混合各词的 V</div>
+   <div class="pstage" data-hg="at-v"><div class="pt">④ 输出:「${PW[qi].w}」融合上下文后的新表示</div>
+     <div class="pn">${PW.map((p,i)=>(al[i]*100).toFixed(0)+'%×V(${p.w})'.replace('${p.w}',p.w)).join(' + ')} = <b>(${f2(out[0])}, ${f2(out[1])})</b>
+     &nbsp;&nbsp;<span style="color:#5C6B82">← 主要成分来自「${PW[mx].w}」</span></div></div>`;
+}
+pipeRender(0);
+
+/* ==================== 第〇课 符号急救包 ==================== */
+const SYMS=[
+ ['第一课 · Softmax',[
+  ['e','自然常数','一个固定的数,约等于 2.718——和 π 一样是数学里的常客。不用会算它,记住"约 2.72"就够。'],
+  ['e<sup>x</sup>','e 的 x 次方','x 每增加 1,结果就乘一次 2.72;x 是负数时结果变小,但永远大于 0。softmax 靠它把任意分数(可正可负)统一变成正数,并狠狠奖励高分。'],
+  ['Σ','西格玛(求和)','"把后面这一串全部加起来"的缩写。<span class="mi">Σ<sub>j</sub> e<sup>z<sub>j</sub></sup></span> 就是:每个词都算 <span class="mi">e<sup>z</sup></span>,再全加起来。'],
+  ['z<sub>i</sub>','z 下标 i','下标只是编号,不是运算:<span class="mi">z<sub>1</sub></span> = 第 1 个词的分数,<span class="mi">z<sub>i</sub></span> = 第 i 个词的分数。'],
+  ['T','温度','不是传统数学符号,是个可调旋钮(参数):控制概率分布是"极端"还是"平均"。']]],
+ ['第二课 · 交叉熵',[
+  ['ln(x)','自然对数','<span class="mi">e<sup>x</sup></span> 的反向操作,回答"e 的几次方等于 x?"。ln(1)=0;x 越接近 0,ln(x) 是越夸张的负数——这就是罚分曲线左端爆炸的原因。'],
+  ['L','损失(Loss)','"罚分"这个数的名字而已。'],
+  ['−ln(p)','负对数','p 是小于 1 的数,ln(p) 为负;加个负号翻成正数,凑成"越小越好"的罚分。']]],
+ ['第三课 · 梯度下降',[
+  ['∇L','纳布拉(梯度)','罚分曲线在当前位置的坡度。正=往右是上坡,负=往右是下坡。名字唬人,东西就是"坡度"。'],
+  ['η','伊塔(学习率)','一个希腊字母,当变量名用:每步迈多大。'],
+  ['←','更新为','把右边算出的新值,覆盖存回左边的变量。是"赋值"动作,不是"等于"。'],
+  ['w','参数(旋钮)','模型内部一个可调的数。真实大模型里有几百亿个 w,每个都执行同一行更新公式。']]],
+ ['第四课 · 自回归',[
+  ['P(A)','A 的概率','0 到 1 之间的数:0=不可能,1=必然,0.5=一半一半。'],
+  ['P(A|B)','条件概率','竖线读作"已知 / 在…前提下":已知前文是 B 时,下一个词是 A 的概率。'],
+  ['∏','派(连乘)','Σ 的乘法兄弟:"把后面这一串全部乘起来"。'],
+  ['w<sub>1</sub>…w<sub>n</sub>','词序列','第 1 个到第 n 个词。这里的 w 指词(word),和第三课的参数 w 撞名了——数学符号常复用,看上下文区分。']]],
+ ['第五课 · Attention',[
+  ['(2.0, 0.4)','向量','打包在一起的一组数,像坐标。真实模型里一个词的向量有几千个数,本课用 2 个演示。'],
+  ['Q·K','点积','对应位置相乘再相加:(2, 0.4)·(1.8, 0.6) = 2×1.8 + 0.4×0.6。结果越大,两个向量越"合拍"。'],
+  ['K<sup>T</sup>','转置','把数字表格横竖翻转的排版操作,目的是让矩阵乘法对上号。零基础阶段可放心无视。'],
+  ['√d','根号 d','开平方(平方的反操作):√2≈1.41。d 是向量里数字的个数(维度)。']]]];
+function symHTML(){
+  return SYMS.map(g=>'<div class="sym-group"><h4>'+g[0]+'</h4>'+
+    g[1].map(r=>'<div class="sym-row"><span class="sy">'+r[0]+'</span><span><span class="sn">'+r[1]+'</span><br><span class="sm2">'+r[2]+'</span></span></div>').join('')+'</div>').join('');
+}
+$('#symTableMain').innerHTML=symHTML();
+$('#symTablePanel').innerHTML=symHTML();
+
+function c0Render(){
+  const x=+$('#c0x').value, v=Math.exp(x);
+  $('#c0xv').textContent=f2(x,1); $('#c0xe').textContent=f2(x,1);
+  $('#c0ex').textContent=f2(v); $('#c0exin').textContent=f2(v); $('#c0ln').textContent=f2(Math.log(v),1);
+  $('#c0note').innerHTML =
+    x>=2?'x 加 1,结果乘 2.72——指数涨得就是这么快。':
+    x<=-2?'x 是很小的负数时,<span class="mi">e<sup>x</sup></span> 贴近 0 但永远不等于 0——所以 softmax 里没有词的概率是绝对零。':
+    '<span class="mi">e<sup>x</sup></span> 与 ln 像"拉链":一个拉上,一个拉开。拖到两端看看。';
+}
+$('#c0x').addEventListener('input',c0Render); c0Render();
+
+
+/* ==================== 串联桥 ==================== */
+/* —— 桥 1→2:与第一课滑块双向联动 —— */
+function b12Render(){
+  const T=+$('#temp').value, z=[0,1,2].map(i=>+$('#z'+i).value);
+  const ex=z.map(v=>Math.exp(v/T)), p=ex[0]/ex.reduce((a,b)=>a+b,0), L=-Math.log(p);
+  $('#b12z').value=z[0]; paintRange($('#b12z'));
+  $('#b12zv').textContent=f2(z[0],1); $('#b12a').textContent=f2(z[0],1);
+  $('#b12b').textContent=f2(p); $('#b12c').textContent=f2(L);
+  $('#b12m').textContent = L<0.15?'裁判非常满意——但注意,分数再高,L 也只是逼近 0,永远拿不到"负罚分"。':
+    L>2?'罚分爆炸区:模型把宝押给了别的词。第二课的曲线左端,你正站在上面。':
+    '试试:怎么拖才能让裁判最满意(L 最小)?又要拖到哪,罚分才会爆炸?';
+}
+$('#b12z').addEventListener('input',()=>{
+  $('#z0').value=$('#b12z').value; paintRange($('#z0')); smRender(); b12Render();
+});
+['z0','z1','z2','temp'].forEach(id=>$('#'+id).addEventListener('input',b12Render));
+b12Render();
+
+/* —— 桥 2→3:罚分是参数的曲线 —— */
+const b23f=w=>{
+  const z0=2-0.8*(w-1.5)**2, ex=[Math.exp(z0),Math.exp(0.5),Math.exp(-1.0)];
+  const p=ex[0]/(ex[0]+ex[1]+ex[2]);
+  return {z0,p,L:-Math.log(p)};
+};
+const B23={W:340,H:200,pl:38,pr:10,pt:12,pb:26,wmin:-1.5,wmax:4.5,Lmax:6};
+const b23x=w=>B23.pl+(w-B23.wmin)/(B23.wmax-B23.wmin)*(B23.W-B23.pl-B23.pr);
+const b23y=L=>B23.H-B23.pb-(Math.min(L,B23.Lmax)/B23.Lmax)*(B23.H-B23.pt-B23.pb);
+(function b23Init(){
+  let d='';
+  for(let w=B23.wmin;w<=B23.wmax+1e-9;w+=0.05) d+=(d?'L':'M')+f2(b23x(w),1)+' '+f2(b23y(b23f(w).L),1)+' ';
+  $('#b23svg').innerHTML=`
+   <line x1="${B23.pl}" y1="${b23y(0)}" x2="${B23.W-B23.pr}" y2="${b23y(0)}" stroke="#B9C4D2"/>
+   <text x="${b23x(1.2)}" y="${B23.H-6}" font-size="11" fill="#5C6B82">参数 w →</text>
+   <text x="6" y="${b23y(5.6)}" font-size="10" fill="#5C6B82">L</text>
+   <path d="${d}" fill="none" stroke="#0E7C7B" stroke-width="2.5"/>
+   <circle id="b23dot" r="7" fill="#FFE163" stroke="#1F2B3E" stroke-width="2"/>`;
+})();
+function b23Render(){
+  const w=+$('#b23w').value, r=b23f(w);
+  $('#b23wv').textContent=f2(w); $('#b23a').textContent=f2(w);
+  $('#b23z').textContent=f2(r.z0); $('#b23p').textContent=f2(r.p); $('#b23L').textContent=f2(r.L);
+  $('#b23dot').setAttribute('cx',b23x(w)); $('#b23dot').setAttribute('cy',b23y(r.L));
+  $('#b23m').innerHTML = r.L<0.26?'✓ 谷底!此处 z(好)=2.0、p=0.79、L=0.24——<b>正是全页一直在用的那组数</b>。你刚才手动干的事(朝罚分低的方向挪 w),下一课教机器自动做。':
+    '横轴是参数、纵轴是罚分——把这条曲线想象成一座山谷,你正拖着一个小球找谷底。';
+}
+$('#b23w').addEventListener('input',b23Render); b23Render();
+
+/* —— 桥 3→4:一句话 = 一排预测格 —— */
+const B34=[{ctx:'今天',w:'天气',p:0.55},{ctx:'今天天气',w:'很',p:0.60},{ctx:'今天天气很',w:'好',p:0.62}];
+function b34Render(sel){
+  $('#b34pos').innerHTML=B34.map((o,i)=>
+    `<button class="pos-chip${i===sel?' sel':''}" data-i="${i}">第${i+1}格:已知「${o.ctx}」→ 预测「${o.w}」</button>`).join('');
+  $$('#b34pos .pos-chip').forEach(b=>b.addEventListener('click',()=>b34Render(+b.dataset.i)));
+  const o=B34[sel];
+  $('#b34d').innerHTML=`<span class="cl">这一格自己的小账单</span>p(${o.w}|${o.ctx}) = <b>${o.p}</b> &nbsp;→&nbsp; 罚分 = −ln ${o.p} = <b>${f2(-Math.log(o.p))}</b>`;
+}
+b34Render(0);
+
+/* —— 桥 4→5:注意力开关 —— */
+const B45={off:{p:[0.35,0.34,0.31],m:'注意力关闭:「它」只是个孤零零的代词,模型不知道它指谁——三个词接近瞎猜,罚分很重。'},
+           on:{p:[0.72,0.19,0.09],m:'注意力打开:「它」看向「小猫」,而小猫正在追猎物——「饿」的概率跳到 0.72,罚分掉到 0.33。第四课的概率表,就是这么被"读懂上下文"造出来的。'}};
+function b45Render(mode){
+  const st=B45[mode], mx=st.p.indexOf(Math.max(...st.p));
+  [0,1,2].forEach(i=>{
+    $('#b45b'+i).style.width=(st.p[i]*100)+'%';
+    $('#b45b'+i).classList.toggle('win',i===mx);
+    $('#b45p'+i).textContent=(st.p[i]*100).toFixed(0)+'%';
+  });
+  $('#b45L').textContent=f2(-Math.log(st.p[0]));
+  $('#b45m').textContent=st.m;
+  $('#b45on').classList.toggle('ghost',mode!=='on');
+  $('#b45off').classList.toggle('ghost',mode==='on');
+}
+$('#b45off').addEventListener('click',()=>b45Render('off'));
+$('#b45on').addEventListener('click',()=>b45Render('on'));
+b45Render('off');
+
+/* ==================== 总装步进器 ==================== */
+const ASM_STEPS=[
+ {n:0,t:'① Attention(第五课)',d:'「今天天气很__」里,每个词先环顾全句、按注意力权重吸收其他词的信息——就像第五课里「它」吸收「小猫」后得到 (1.17, 0.39) 那样。句末位置的向量,现在已经装着整句话的语义。'},
+ {n:1,t:'② 打分(第一课的起点)',d:'句末的融合向量 h=(1.17, 0.39) 与每个候选词的输出权重各做一次点积(第一课「分数从哪来」折叠框里那张表),得到 z(好)=2.0、z(冷)=0.5、z(糟)=−1.0——第一课滑块的默认值就是这么来的。'},
+ {n:1,t:'③ Softmax(第一课)',d:'分数过一遍 softmax:p = (0.79, 0.18, 0.04)。你在第一课手算核对过这三个数。'},
+ {n:2,t:'④ 自回归视角(第四课)',d:'刚才只是句中的一格。每个位置都同样预测,整句概率 = 各格连乘:P(今天天气很好) = 0.55 × 0.60 × 0.62 ≈ 0.205。'},
+ {n:3,t:'⑤ 交叉熵(第二课)',d:'训练文本里真实的下一个词是「好」:这一格罚分 L = −ln 0.79 ≈ 0.24;整句取平均 ≈ 0.53(桥 3→4 里你算过)。'},
+ {n:4,t:'⑥ 梯度下降(第三课)',d:'几百亿个参数各自执行 w ← w − η·∇L,罚分被压低一点点。下次遇到类似上下文,p(好) 会比 0.79 更高。↻ 换下一批文本,回到第①步——重复几百万次,就是训练。'}];
+let asmIdx=-1;
+function asmRender(){
+  const nodes=$$('.asm-node');
+  nodes.forEach(n=>n.classList.remove('step-on'));
+  if(asmIdx<0){
+    $('#asmDetail').innerHTML='六个步骤,每一步都只用你在前五课亲手算过的数字。上方流水线会同步点亮当前环节。';
+    $('#asmNext').textContent='开始走一遍 ▶'; $('#asmCount').textContent='';
+  }else{
+    const st=ASM_STEPS[asmIdx];
+    nodes[st.n].classList.add('step-on');
+    $('#asmDetail').innerHTML='<div class="adt">'+st.t+'</div>'+st.d;
+    $('#asmCount').textContent=(asmIdx+1)+' / '+ASM_STEPS.length;
+    $('#asmNext').textContent=asmIdx>=ASM_STEPS.length-1?'再走一遍 ↻':'下一步 →';
+  }
+}
+$('#asmNext').addEventListener('click',()=>{
+  asmIdx=asmIdx>=ASM_STEPS.length-1?0:asmIdx+1; asmRender();
+});
+$('#asmReset').addEventListener('click',()=>{asmIdx=-1;asmRender();});
+asmRender();
+
+/* ==================== 页面专属:预测门配置·账本 ==================== */
+/* —— 预测门 —— */
+const GATES={
+ x:{ans:0,right:'答对了!−ln 曲线左端陡得多:0.10→0.20 罚分降 0.69,而 0.50→0.60 只降 0.18。去曲线上亲手验证。',
+     wrong:'直觉常这么猜——但曲线左端陡得多:0.10→0.20 罚分降 0.69,后者只降 0.18。实验已解锁,去亲眼看看。'},
+ gd:{ans:1,right:'没错。步子太大会在山谷两侧反复横跳,甚至直接飞出去——把 η 拉到 4.5 亲眼看看。',
+     wrong:'去把 η 拉到 4.5 试试——你会亲眼看到"步子大"的代价。实验已解锁。'},
+ aw:{ans:0,right:'和你的语感一致——但注意:模型不是"知道"答案,它是靠 Q·K 点积算出来的。看看真实权重。',
+     wrong:'看看真实权重是谁——再想想为什么。实验已解锁。'}};
+bindGates(GATES);
+
+/* —— 变量账本 —— */
+const LEDGER=[
+ ['w / θ','参数(旋钮):模型长期学到的数,训练时被梯度下降更新'],
+ ['h','表示向量:当前上下文的信息打包——Attention 的产物'],
+ ['z','分数(logit):候选词的原始打分,可正可负,来自 h·W'],
+ ['p','概率:softmax 之后,0~1 之间,全体之和恰为 1'],
+ ['L','损失:这次预测的罚分,越小越好'],
+ ['∇L','梯度:罚分对参数的坡度,指挥每个参数往哪边挪']];
+const lgHTML=LEDGER.map(r=>'<div class="lg-row"><b>'+r[0]+'</b><span>'+r[1]+'</span></div>').join('');
+$('#ledgerMain').innerHTML=lgHTML;
+$('#ledgerPanel').innerHTML=lgHTML;
+
+
+
+
+
+</script>
+</body>
+</html>

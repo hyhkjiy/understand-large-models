@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第三册 · 拆开整机:多头、FFN、残差、反向传播 | 看懂大模型</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+.head-note{margin-top:12px;font-size:.94rem;background:var(--marker-soft);border-radius:8px;padding:8px 14px;display:inline-block}
+.res-wrap{display:flex;gap:26px;flex-wrap:wrap;margin-top:10px}
+.res-box{flex:1;min-width:230px}
+.res-big{font-family:var(--mono);font-size:1.5rem;font-weight:700;margin-top:4px}
+.res-big.dead{color:var(--red)}
+.res-big.ok{color:var(--teal-d)}
+.chain-flow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;font-family:var(--mono);font-size:.85rem}
+.cf-node{background:#fff;border:1.5px solid var(--ink);border-radius:9px;padding:8px 12px;text-align:center;box-shadow:2px 2px 0 rgba(31,43,62,.12)}
+.cf-node .cfl{display:block;font-family:var(--sans);font-size:.68rem;color:var(--sub);letter-spacing:.06em}
+.cf-node b{color:var(--teal-d)}
+.cf-arrow{color:var(--teal);font-weight:900}
+.cf-grad{background:var(--red-bg);border-color:var(--red)}
+.cf-grad b{color:var(--red)}
+</style>
+</head>
+<body data-prog-total="9">
+<nav>
+  <div class="nav-in">
+    <span class="nav-brand">拆开整机</span>
+    <a class="nav-chip" href="#c1" data-nav="c1">1 多头注意力</a>
+    <a class="nav-chip" href="#c2" data-nav="c2">2 前馈网络</a>
+    <a class="nav-chip" href="#c3" data-nav="c3">3 残差</a>
+    <a class="nav-chip" href="#c4" data-nav="c4">4 反向传播</a>
+    <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
+    <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
+    <a class="nav-chip" href="#c8" data-nav="c8">终极彩蛋 2.0</a>
+    <span class="nav-chip" id="navProg">掌握 0/9</span>
+  </div>
+  <div class="series-in">
+    <a class="sbook" href="index.html">📖 总目录</a>
+    <a class="sbook" href="01-formulas.html">第一册 · 五个公式</a>
+    <a class="sbook" href="02-tokens.html">第二册 · 向量从哪来</a>
+    <a class="sbook cur" href="03-transformer.html">第三册 · 拆开整机</a>
+    <a class="sbook" href="04-assistant.html">第四册 · 从接龙到助手</a>
+    <a class="sbook" href="05-limits.html">第五册 · 边界与真相</a>
+  </div>
+</nav>
+
+<main>
+<header class="hero" id="top">
+  <h1>第一册只拆了<span class="hl">半边心脏</span>,<br>这一册把引擎盖整个掀开。</h1>
+  <p class="lead">你已经懂 Attention 了——但一层 Transformer 里,Attention 只负责"搬运信息"。谁在"加工信息"?几十层怎么堆起来不塌?几百亿个参数的坡度到底怎么求?四课拆完,你将第一次看到整机图;终极彩蛋会给第一册的玩具模型真的装上隐藏层。</p>
+  <p class="note">前置:第一册全部 + 第二册。本册是全系列最"深"的一册,但每一步依然只有加减乘。</p>
+</header>
+
+<!-- ======================== 第一课 多头注意力 ======================== -->
+<section class="chapter" id="c1">
+  <div class="ch-head"><span class="ch-no">第一课</span><h2>多头注意力:不止一双眼睛</h2><span class="en">multi-head attention</span></div>
+  <p class="ch-lede">第一册第五课的 Attention 是"一双眼睛":一套 Q/K/V,一种看法。真实模型里,每层有几十套 Q/K/V <b>并行</b>地各看各的——有的头盯指代关系,有的头盯邻居,有的头盯语法搭配。这就是"多头"。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>「它」需要同时知道两件事:指谁?以及在什么语境里?</h3>
+    <p>一套注意力权重加起来只有 100%,盯了「小猫」就顾不上「因为…饿」这个因果语境。解决办法不是加大一双眼睛,而是<b>多配几双,各司其职,最后把看到的拼起来</b>。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>同一个「它」,两个头看到的世界完全不同</h3>
+    <div class="widget">
+      <div class="btn-row" style="margin-top:0">
+        <button class="btn" data-head="A" id="hbA">头 A</button>
+        <button class="btn ghost" data-head="B" id="hbB">头 B</button>
+        <button class="btn ghost" data-head="C" id="hbC">两头拼接</button>
+      </div>
+      <div class="attn-cols" id="mhCols" style="margin-top:16px"></div>
+      <div class="head-note" id="mhNote"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>每个头就是第一册那一行,只是各有各的参数</h3>
+    <div class="fbox" id="mhF">
+      <div class="formula" style="font-size:clamp(1.05rem,2.6vw,1.45rem)">
+        MultiHead<span class="op">=</span><span class="term" data-g="mh-cat" data-tip="<b>拼接(concat)</b>:把每个头的输出向量首尾接在一起——头A看到的'指代'和头B看到的'语境'都保留">拼接</span>(<span class="term" data-g="mh-h1" data-tip="<b>head₁…head_h</b>:每个头都是完整的一次 Attention(Q,K,V),只是各自用一套自己的参数矩阵把输入变成不同的 Q/K/V——所以'看点'不同">head<sub>1</sub>, …, head<sub>h</sub></span>)<span class="op">·</span><span class="term" data-g="mh-wo" data-tip="<b>W<sup>O</sup></b>:输出矩阵,把拼接结果重新混合、压回原来的尺寸——让下一步照常接手">W<sup>O</sup></span>
+      </div>
+      <div class="tip" id="mhTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">每个 <code class="mi">head<sub>i</sub> = Attention(XW<sub>i</sub><sup>Q</sup>, XW<sub>i</sub><sup>K</sup>, XW<sub>i</sub><sup>V</sup>)</code>——第一册第五课那行公式,一个字没变。"多头"没有新数学,只有<b>分工</b>。GPT-3 每层 96 个头,每个头各管一摊。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">研究者真的解剖过训练好的模型,发现了明确分工的头:专盯上一个词的"前词头"、专找指代对象的"指代头"、专匹配括号引号的"配对头"……没有人给它们分配任务——分工是训练自己涌现出来的。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary><div class="pynote">点「▶ 运行」在浏览器里真跑(首次需联网下载引擎,约 10~20 秒);也可复制到本地。只用标准库。</div>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson1_multihead.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+def softmax(xs):
+    ex = [math.exp(x) for x in xs]; s = sum(ex)
+    return [e / s for e in ex]
+
+words = ["小猫", "追", "老鼠", "因为", "它", "饿"]
+# 同一个「它」,两个头各有一套 K(来自不同的参数矩阵 W_K)
+K_headA = [[1.8,0.6],[0.2,0.1],[0.9,-0.5],[0.1,0.2],[0.5,1.0],[0.4,0.3]]   # 指代头
+K_headB = [[0.1,0.2],[0.3,0.1],[0.2,0.3],[1.5,0.8],[0.6,0.4],[1.6,0.7]]   # 语境头
+q = [2.0, 0.4]                                 # 「它」的查询向量
+
+for name, K in [("头A(指代)", K_headA), ("头B(语境)", K_headB)]:
+    w = softmax([(q[0]*k[0] + q[1]*k[1]) / math.sqrt(2) for k in K])
+    top = words[w.index(max(w))]
+    print(name, " ".join(f"{x}:{p:.0%}" for x, p in zip(words, w)), "→ 最关注:", top)
+# 同一个 q,不同的 K 参数 → 完全不同的关注点。拼接后两种信息都保留。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q1" data-fbok="正确——一套权重和为 100%,注意力是稀缺资源;多头让不同关系各占一双眼睛。" data-fbbad="回看动手玩:头A 和头B 的权重各自加起来都是 100%,它们互相挤占吗?">
+      <h3>为什么要多个头,而不是把一个头做大?</h3><button class="q-opt" data-ok="0">多个头算得更快</button><button class="q-opt" data-ok="1">一套注意力权重总和只有 100%,盯了指代就顾不上语境;多头让多种关系并行各看各的</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第一课 → 第二课</span>
+  <h3>Attention 只是"搬运工"——它从不创造信息</h3>
+  <p>回看第一册第五课第④步:输出只是各词 V 的<b>加权平均</b>。搬运、混合、路由——但从不加工。「小猫」+「饿」混进了「它」的向量,可"猫饿了会去找吃的"这种<b>知识</b>,谁来提供?每层 Transformer 里,Attention 后面还紧跟着另一个部件——真正的"思考者"。</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第二课 前馈网络 ======================== -->
+<section class="chapter" id="c2">
+  <div class="ch-head"><span class="ch-no">第二课</span><h2>前馈网络 FFN:真正的"隐藏层"来了</h2><span class="en">feed-forward network</span></div>
+  <p class="ch-lede">这就是你在别处听说的"神经网络隐藏层"。结构简单到失望:放大 → 掰弯 → 压回。但"掰弯"那一下,是整个深度学习的魔法所在。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>只用加法和乘法,能表达"猫饿了就找吃的,但吃饱了就睡觉"吗?</h3>
+    <p>不能。加法乘法只能画<b>直线</b>(线性关系):输入变大,输出等比例变化,永远直来直去。而知识充满"拐弯":条件、分段、饱和。需要一个能<b>拐弯</b>的零件。</p>
+  </div>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>两个神经元 + 一个"掰弯器",就能造出一座山</h3>
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">下面的网络里有个开关能去掉 ReLU(掰弯器)。去掉之后,输出曲线会变成什么形状?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="ffn" data-i="0">还是山形,只是矮一点</button><button class="btn ghost g-opt" data-g="ffn" data-i="1">变成一条直线</button><button class="btn ghost g-opt" data-g="ffn" data-i="2">变成水平线</button></div>
+      <div class="gate-res" id="gres-ffn">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-ffn">
+      <div class="w-grid">
+        <div>
+          <div class="slider-row"><label>输入 x</label><input type="range" id="ffnX" min="0" max="5" step="0.05" value="2"><span class="val" id="ffnXv">2.00</span></div>
+          <div class="btn-row"><button class="btn warn" id="ffnRelu">去掉 ReLU 🔧</button></div>
+          <div class="readout" style="margin-top:12px">
+            <div class="cell">神经元1 = <span id="ffnH1e"></span> = <b id="ffnH1">—</b></div>
+            <div class="cell">神经元2 = <span id="ffnH2e"></span> = <b id="ffnH2">—</b></div>
+            <div class="cell">输出 y = 神经元1 − 2×神经元2 = <b id="ffnY">—</b></div>
+          </div>
+          <div class="gd-msg" id="ffnMsg"></div>
+        </div>
+        <div>
+          <div class="w-title" id="ffnTitle">输出曲线:y(x) —— 注意 x=1 和 x=3 处的"拐点"</div>
+          <svg id="ffnSvg" viewBox="0 0 340 230" width="100%"></svg>
+        </div>
+      </div>
+      <p class="small" style="margin-top:10px">ReLU(x) = max(0, x):负数一律归零,正数原样通过——就这么个"半路闸门",让直线有了拐点。两个拐点拼出一座山;几千个神经元,就能拼出任意形状的知识曲面。</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>放大 → 掰弯 → 压回</h3>
+    <div class="fbox" id="ffnF">
+      <div class="formula" style="font-size:clamp(1.15rem,2.8vw,1.6rem)">
+        FFN(<span class="term" data-g="ffn-h" data-tip="<b>h</b>:Attention 混合完上下文的向量——第一册第五课的输出,这里是 FFN 的输入">h</span>)<span class="op">=</span><span class="term" data-g="ffn-w2" data-tip="<b>W₂</b>:压回矩阵,把放大后的中间结果压回原尺寸,好交给下一层">W<sub>2</sub></span><span class="op">·</span><span class="term" data-g="ffn-relu" data-tip="<b>ReLU / GELU</b>:掰弯器(激活函数)。没有它,一百层网络会塌缩成一层——你刚在实验里亲眼见过直线">ReLU</span>(<span class="term" data-g="ffn-w1" data-tip="<b>W₁</b>:放大矩阵,先把向量投进一个宽 4 倍的空间——神经元越多,能拼的拐点越多">W<sub>1</sub></span><span class="op">·</span><span class="term" data-g="ffn-h" data-tip="<b>h</b>:Attention 的输出向量">h</span>)
+      </div>
+      <div class="tip" id="ffnTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">中间层通常宽 4 倍(GPT-3:12288 → 49152 → 12288)。<b>FFN 占了整层约 2/3 的参数</b>,研究普遍认为模型的"事实知识"主要存在这里——Attention 负责把问题搬运到位,FFN 负责"查库作答"。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>拿 x=2 核对一次</h3>
+    <div class="verify">
+      神经元1 = ReLU(2 − 1) = 1,神经元2 = ReLU(2 − 3) = ReLU(−1) = 0:<br>
+      <span class="mono">y = 1 − 2×0 = <b>1.0</b></span> —— 把上面滑块拖到 2.0 核对。<br>
+      再试 x=4:神经元1 = 3,神经元2 = 1,y = 3 − 2 = 1 —— 上山又下山,这就是"拐弯"。
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">一层 Transformer = <b>多头 Attention(搬运)+ FFN(加工)</b>。第一册第五课说"拿融合后的向量去打分"——中间其实还经过了几十层这样的"搬运+加工"。你问"法国的首都是哪"时,大概率是某几层的 FFN 神经元完成了"法国→巴黎"的检索。</div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson2_ffn.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">relu = lambda v: max(0.0, v)
+
+def ffn(x, bend=True):                         # 两个神经元的迷你 FFN
+    g = relu if bend else (lambda v: v)        # bend=False 就是"去掉掰弯器"
+    h1, h2 = g(x - 1), g(x - 3)
+    return h1 - 2 * h2
+
+print("x     有ReLU   没ReLU")
+for x in [0, 1, 2, 3, 4, 5]:
+    print(f"{x}      {ffn(x):5.1f}   {ffn(x, bend=False):5.1f}")
+# 有 ReLU:0 0 1 2 1 0 —— 一座山(非线性!)
+# 没 ReLU:(x-1)-2(x-3) = -x+5 —— 永远是直线。
+# 没有激活函数,叠 100 层也只是直线套直线 = 还是直线。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q2" data-fbok="正确——直线套直线还是直线;掰弯器是深度的前提。" data-fbbad="试试代码里 bend=False 的那列:两层线性变换合并后等于什么?">
+      <h3>把 100 层网络里的激活函数(掰弯器)全部去掉,这个网络等价于?</h3><button class="q-opt" data-ok="0">100 层直线网络,依然很强</button><button class="q-opt" data-ok="1">一层线性变换——直线套直线还是直线,深度全部作废</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第二课 → 第三课</span>
+  <h3>零件齐了,开始往高处堆——然后楼塌了</h3>
+  <p>一层 = 多头 Attention + FFN。GPT-3 堆了 96 层。但直接往上摞会出事:每层都对信号做一次变换,几十层下来,信号要么衰减到消失、要么放大到爆炸——训练信号(梯度)同样过不去。深楼时代之前,"超过十几层就训不动"困扰了整个领域好几年。</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第三课 残差与 LayerNorm ======================== -->
+<section class="chapter" id="c3">
+  <div class="ch-head"><span class="ch-no">第三课</span><h2>残差连接:给每一层修一条"高速直通道"</h2><span class="en">residual & layernorm</span></div>
+  <p class="ch-lede">解决方案是一个加号:每层的输出不是 F(x),而是 <b>x + F(x)</b>——把输入原封不动抄一份加回来。层只需要学"该修改什么"(残差),不必学"如何复述一切"。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>拖层数,看信号在两种楼里的命运</h3>
+    <div class="widget">
+      <div class="slider-row" style="max-width:440px"><label>层数 N</label><input type="range" id="resN" min="1" max="40" step="1" value="4"><span class="val" id="resNv">4</span></div>
+      <div class="res-wrap">
+        <div class="res-box">
+          <div class="w-title">没有残差:每层信号 ×0.9(轻微衰减)</div>
+          <div class="bar-row" style="grid-template-columns:1fr 5em"><div class="bar-track"><div class="bar-fill" id="resB1" style="background:#D1495B"></div></div><span class="pv" id="resP1"></span></div>
+          <div class="res-big" id="resV1"></div>
+        </div>
+        <div class="res-box">
+          <div class="w-title">有残差 + LayerNorm:x + F(x),再拉回标准体型</div>
+          <div class="bar-row" style="grid-template-columns:1fr 5em"><div class="bar-track"><div class="bar-fill" id="resB2"></div></div><span class="pv" id="resP2"></span></div>
+          <div class="res-big ok" id="resV2"></div>
+        </div>
+      </div>
+      <div class="gd-msg" id="resMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>一个加号,一次"整队"</h3>
+    <div class="fbox" id="resF">
+      <div class="formula" style="font-size:clamp(1.15rem,2.8vw,1.6rem)">
+        输出<span class="op">=</span><span class="term" data-g="res-ln" data-tip="<b>LayerNorm</b>:把向量的数值拉回标准范围(均值 0、方差 1)——像每过一层就'整队'一次,防止数值越走越飘">LayerNorm</span>(<span class="term" data-g="res-x" data-tip="<b>x</b>:这一层的输入,原封不动抄一份——'高速直通道'。信息和梯度都能沿它无损直达任何一层">x</span><span class="op">+</span><span class="term" data-g="res-f" data-tip="<b>F(x)</b>:这一层真正算出来的修改量(先 Attention 后 FFN 各来一次)。层学的不再是'如何复述一切',只是'该改什么'——这也是'残差'一词的含义">F(x)</span>)
+      </div>
+      <div class="tip" id="resTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">对训练同样致命的是反方向:第一册第三课的梯度要从 loss 一路传回第 1 层。没有直通道,梯度逐层乘小数,传到底就没了(梯度消失)。有了 <code class="mi">x + F(x)</code>,梯度沿加号那条路<b>原样直达</b>——几百层照训不误。2015 年 ResNet 靠这一个加号把可训练深度从 20 层推到 1000 层。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">现在一层 Transformer 的完整配方齐了:<span class="mono">x → LayerNorm → 多头Attention → +x → LayerNorm → FFN → +x</span>。GPT-3 把它复制 96 份摞起来。<b>整栋楼里没有任何你不认识的零件。</b></div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson3_residual.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">signal = 1.0
+for n in [1, 5, 10, 20, 40]:
+    print(f"没有残差,{n:2d} 层后:信号 = 0.9^{n} = {0.9**n:.4f}")
+# 40 层后只剩 1.5%——梯度反向传播时同样按这个比例消失。
+
+x = 1.0
+for _ in range(40):
+    F = 0.02 * (2 - x)      # 这一层想做的小修改(把信号往目标推一点点)
+    x = x + F               # 残差:输入原样直通 + 修改量
+print(f"有残差,40 层后:信号 = {x:.4f}   (被逐层雕琢,但从未断路)")
+# 关键区别:无残差时信号"穿过"每一层(逐层打折);
+# 有残差时每层只是往直通的信号上"加一笔"——哪怕某层什么都不加,信号也原样通过。</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q3" data-fbok="正确——加号那条支路让信息与梯度都能无损穿越任意深度。" data-fbbad="回看实验:0.9 的 40 次方剩多少?残差那栏为什么不掉?">
+      <h3>残差连接 x + F(x) 解决的核心问题是?</h3><button class="q-opt" data-ok="0">让模型参数变少,省显存</button><button class="q-opt" data-ok="1">给信号和梯度一条直通道,让几十上百层深的网络仍然训得动</button><button class="q-opt" data-ok="0">让每层的计算可以并行</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<div class="bridge">
+  <span class="btag">串联桥 · 第三课 → 第四课</span>
+  <h3>楼盖好了——但第一册欠的最后一笔账该还了</h3>
+  <p>第一册第三课说:"对<b>几百亿个参数各自求坡度</b>(反向传播干的活)"。当时一笔带过。现在楼里每个参数——96 层里的每个 W、每个 embedding——都需要自己的 ∇L。挨个"挪一挪试试"要算几百亿次前向,宇宙热寂都等不来。反向传播,就是那个把这件事变成"一次扫描全搞定"的算法。</p>
+</div>
+<div class="bridge-link"></div>
+
+<!-- ======================== 第四课 反向传播 ======================== -->
+<section class="chapter" id="c4">
+  <div class="ch-head"><span class="ch-no">第四课</span><h2>反向传播:坡度沿着链条往回乘</h2><span class="en">backpropagation</span></div>
+  <p class="ch-lede">核心只有一条小学奥数式的规则——<b>链式法则</b>:A 影响 B、B 影响 L,那么"A 对 L 的影响" = 两段影响相乘。网络再深,也只是把沿路的"局部坡度"一路乘回去。</p>
+
+  <div class="stage">
+    <span class="tag">动手玩</span>
+    <h3>一条四节小链,亲眼看坡度怎么"往回流"</h3>
+    <div class="widget">
+      <div class="slider-row" style="max-width:440px"><label>参数 w<sub>1</sub></label><input type="range" id="bpW1" min="-2" max="2" step="0.05" value="0.8"><span class="val" id="bpW1v">0.80</span></div>
+      <div class="slider-row" style="max-width:440px"><label>参数 w<sub>2</sub></label><input type="range" id="bpW2" min="-2" max="2" step="0.05" value="-1.2"><span class="val" id="bpW2v">-1.20</span></div>
+      <div class="chain-flow" id="bpFwd"></div>
+      <div class="w-title" style="margin-top:16px">↓ 反向:每节的"局部坡度"连乘,就是 w₁ 的梯度</div>
+      <div class="chain-flow" id="bpBwd"></div>
+      <div class="btn-row"><button class="btn ghost" id="bpCheck">🔬 数值验证:真的把 w₁ 挪 0.000001 试试</button></div>
+      <div class="gd-msg" id="bpMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>链式法则:影响力 = 沿路坡度的连乘</h3>
+    <div class="fbox" id="bpF">
+      <div class="formula" style="font-size:clamp(1.05rem,2.6vw,1.5rem)">
+        <span class="frac"><span class="top">dL</span><span class="bot">dw<sub>1</sub></span></span><span class="op">=</span><span class="term" data-g="bp-1" data-tip="<b>dL/dŷ</b>:罚分对预测值的坡度——第一册第二课交叉熵曲线的斜率,这里是链条的起点">​<span class="frac"><span class="top">dL</span><span class="bot">dŷ</span></span></span><span class="op">·</span><span class="term" data-g="bp-2" data-tip="<b>dŷ/dh</b>:预测对隐藏值的坡度(这里就是 w₂ 本身)"><span class="frac"><span class="top">dŷ</span><span class="bot">dh</span></span></span><span class="op">·</span><span class="term" data-g="bp-3" data-tip="<b>dh/da</b>:穿过掰弯器的坡度(tanh 的斜率 = 1−h²)。每种零件都有自己的一小条求导规则"><span class="frac"><span class="top">dh</span><span class="bot">da</span></span></span><span class="op">·</span><span class="term" data-g="bp-4" data-tip="<b>da/dw₁</b>:第一节对参数的坡度(这里就是输入 x 本身)。四段坡度一乘,w₁ 的梯度到手"><span class="frac"><span class="top">da</span><span class="bot">dw<sub>1</sub></span></span></span>
+      </div>
+      <div class="tip" id="bpTip">把鼠标移到公式的某一项上试试 →</div>
+      <div class="fnote">"反向传播"= 链式法则的<b>流水线化</b>:先前向算一遍存下沿路数值,再从 loss 出发<b>倒着扫一遍</b>,每个参数顺手拿到自己的梯度。总代价 ≈ 两次前向——几百亿参数也只要一个来回,这就是第一册第三课"对每个参数求坡度"四个字背后的全部秘密。第一册那个漂亮的闭式梯度 <code class="mi">p − 1</code>,正是这条链最末两节(softmax+交叉熵)乘出来的结果。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>四个数,乘一遍</h3>
+    <div class="verify">
+      设某时刻链上四段坡度分别是:dL/dŷ = 2,dŷ/dh = 0.5,dh/da = 1,da/dw₁ = 3:<br>
+      <span class="mono">dL/dw₁ = 2 × 0.5 × 1 × 3 = <b>3.0</b></span> —— 意思是:w₁ 挪 0.01,L 大约动 0.03。
+      <div class="try" data-exp="3" data-tol="0.01" data-key="t1"><span>✍️ 轮到你:若四段坡度是 1.5、2、1、1,dL/dw₁ = ?</span><input type="number" step="0.01" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">训练 GPT 的每一步:前向跑 96 层算出 loss(第一、二课的打分罚分)→ 反向扫 96 层,几百亿个参数各自拿到 ∇L(本课)→ 全体执行 w ← w − η·∇L(第一册第三课)。残差的直通道(上一课)保证梯度扫到第 1 层时还活着。<b>至此,训练一个大模型所需的每一个零件,你都见过了。</b></div>
+  </div>
+
+  <details class="pydet">
+    <summary>🐍 用 Python 验证这一课(可选:一键复制,或直接在页内运行)</summary>
+    <div class="pyblock">
+      <div class="pyhead"><span class="pl">lesson4_backprop.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+      <pre class="pycode">import math
+
+w1, w2, x, y = 0.8, -1.2, 1.5, 1.0
+a = w1 * x                                     # 前向:一节节算过去,存下沿路数值
+h = math.tanh(a)
+yh = w2 * h
+L = (yh - y) ** 2
+print(f"前向: a={a:.3f}  h={h:.3f}  ŷ={yh:.3f}  L={L:.3f}")
+
+g = 2 * (yh - y)                               # 反向:从 L 出发,坡度一路往回乘
+g_h  = g * w2                                  #   × dŷ/dh
+g_a  = g_h * (1 - h**2)                        #   × dh/da(tanh 的斜率)
+g_w1 = g_a * x                                 #   × da/dw₁ —— w₁ 的梯度到手
+print("链式法则算出 dL/dw1 =", round(g_w1, 6))
+
+eps = 1e-6                                     # 数值验证:真的挪一挪
+Lp = (w2 * math.tanh((w1+eps)*x) - y) ** 2
+Lm = (w2 * math.tanh((w1-eps)*x) - y) ** 2
+print("挪一挪量出来的      =", round((Lp - Lm) / (2*eps), 6), "  ← 分毫不差")</pre>
+      <pre class="pyout" hidden></pre>
+    </div>
+  </details>
+
+  <div class="stage"><span class="tag">过关检查</span>
+    <div class="quiz" data-key="q4" data-fbok="正确——一次反向扫描,所有参数同时拿到梯度,代价只相当于再跑一次前向。" data-fbbad="想想'挨个挪一挪'需要几次前向?反向传播需要几次?">
+      <h3>反向传播之于"给几百亿参数求梯度",本质上是?</h3><button class="q-opt" data-ok="0">一种近似:牺牲精度换速度</button><button class="q-opt" data-ok="1">链式法则的高效执行:一次反向扫描,人人拿到精确梯度</button><button class="q-opt" data-ok="0">对每个参数分别挪一挪再测量</button><div class="q-fb"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======================== 总装 ======================== -->
+<section class="chapter" id="c6">
+  <div class="ch-head"><span class="ch-no">总 装</span><h2>整机图:GPT 的完整解剖,零件你全认识</h2><span class="en">the full anatomy</span></div>
+  <p class="ch-lede">从文字进,到概率出——每一块你都亲手玩过:</p>
+  <div class="asm" style="flex-direction:column;align-items:stretch">
+    <button class="asm-node"><div class="an">输入端 · 第二册</div><div class="at">分词 → Embedding → +位置编码</div><div class="ad">文字变成一排带位置的向量</div></button>
+    <button class="asm-node" style="border-width:2.5px"><div class="an">主体 · 复制 N 层(GPT-3:96 层)</div><div class="at">每层 = LayerNorm → 多头 Attention → ⊕残差 → LayerNorm → FFN → ⊕残差</div><div class="ad">Attention 搬运信息(第一课),FFN 加工知识(第二课),残差保证堆得起来(第三课)</div></button>
+    <button class="asm-node"><div class="an">输出端 · 第一册</div><div class="at">打分 → Softmax → 概率</div><div class="ad">最后一层的向量 h 对词表打分,softmax 给出下一个词的概率</div></button>
+    <button class="asm-node" style="border-style:dashed"><div class="an">训练回路</div><div class="at">交叉熵 → 反向传播(第四课)→ 梯度下降</div><div class="ad">罚分从输出端出发,沿残差高速路反向扫过全楼,几百亿参数同步微调</div></button>
+  </div>
+</section>
+
+<!-- ======================== 毕业测验 ======================== -->
+<section class="chapter" id="c7">
+  <div class="ch-head"><span class="ch-no">毕 业</span><h2>迁移测验:换个场景,你还会吗</h2><span class="en">transfer test</span></div>
+  <p class="ch-lede">四题全对,整机毕业:</p>
+  <div class="w-grid">
+    <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回想第一课:每个头有自己的一套 W_Q/W_K/W_V。">
+      <h3>① 解剖发现某个头专盯"上一个词"。这种分工是谁设计的?</h3><button class="q-opt" data-ok="0">工程师为每个头写了规则</button><button class="q-opt" data-ok="1">没人设计——各头参数不同,训练中自发分化出分工</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="Attention 的输出只是 V 的加权平均——它搬运,不加工。">
+      <h3>② "法国的首都是巴黎"这类事实,普遍认为主要存在哪里?</h3><button class="q-opt" data-ok="0">Attention 的注意力权重里</button><button class="q-opt" data-ok="1">FFN(前馈网络)的参数里——它占每层约 2/3 的参数</button><button class="q-opt" data-ok="0">位置编码里</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="回看第三课:梯度沿哪条路才能活着传到第 1 层?">
+      <h3>③ 把一个 96 层模型的所有残差连接删掉再训练,最可能发生?</h3><button class="q-opt" data-ok="1">梯度传不到底层,训练失败或极其缓慢</button><button class="q-opt" data-ok="0">没影响,残差只是省内存的技巧</button><div class="q-fb"></div></div>
+    <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="链条上每一节都要乘:tanh 那节的局部坡度是 1−h²,h 饱和时它趋近 0。">
+      <h3>④ 链条中某节"掰弯器"进入饱和区(局部坡度≈0),它上游参数的梯度会?</h3><button class="q-opt" data-ok="1">≈0——连乘里有个零,整条链的梯度都被掐断</button><button class="q-opt" data-ok="0">不受影响,各节坡度互相独立</button><div class="q-fb"></div></div>
+  </div>
+  <div class="verify" id="gradBox" data-done="🎓 毕业!整机的每个零件——搬运、加工、直通道、回传——你都能说清它为什么存在了。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
+</section>
+
+<!-- ======================== 终极彩蛋 2.0 ======================== -->
+<section class="chapter" id="c8">
+  <div class="ch-head"><span class="ch-no">终极彩蛋 2.0</span><h2>给第一册的玩具模型,真的装上隐藏层</h2><span class="en">now with a hidden layer</span></div>
+  <p class="ch-lede">第一册的彩蛋是一张查表(没有隐藏层)。现在升级:<b>embedding(第二册)→ tanh 隐藏层(本册第二课)→ 打分</b>,梯度全程手写反向传播(本册第四课)穿过每一层——没有任何框架,没有任何黑盒。对照注释找每个零件的出处。</p>
+  <div class="pyblock">
+    <div class="pyhead"><span class="pl">train_toy_llm_v2.py</span><button class="pybtn py-copy">复制</button><button class="pybtn run py-run">▶ 运行</button></div>
+    <pre class="pycode">import math, random
+random.seed(0)
+
+# ── 语料与词表:和第一册终极彩蛋完全相同 ─────────────────
+corpus = "今天 天气 很 好 。 今天 天气 很 冷 。 明天 天气 很 好 。 今天 心情 很 好 。".split()
+vocab = sorted(set(corpus)); n = len(vocab)
+idx = {w: i for i, w in enumerate(vocab)}
+
+D = 4                                          # 隐藏层宽度(真实模型:几千)
+rnd = lambda: random.uniform(-0.5, 0.5)
+E  = [[rnd() for _ in range(D)] for _ in range(n)]   # 词向量表(第二册)
+W1 = [[rnd() for _ in range(D)] for _ in range(D)]   # 隐藏层(本册第二课)
+W2 = [[rnd() for _ in range(n)] for _ in range(D)]   # 打分层(第一册第一课)
+
+def softmax(z):
+    m = max(z); ex = [math.exp(v - m) for v in z]; s = sum(ex)
+    return [e / s for e in ex]
+
+def forward(w):                                # 前向:查表 → 掰弯 → 打分
+    x = E[idx[w]]
+    h = [math.tanh(sum(x[i]*W1[i][j] for i in range(D))) for j in range(D)]
+    z = [sum(h[i]*W2[i][j] for i in range(D)) for j in range(n)]
+    return x, h, z, softmax(z)
+
+pairs = list(zip(corpus[:-1], corpus[1:]))
+lr = 0.1
+for epoch in range(240):
+    loss = 0.0
+    for prev, nxt in pairs:
+        x, h, z, p = forward(prev)
+        loss += -math.log(p[idx[nxt]])                            # 交叉熵(第一册)
+        dz = [p[j] - (1 if j == idx[nxt] else 0) for j in range(n)]   # 闭式梯度 p−y
+        dh = [sum(dz[j]*W2[i][j] for j in range(n)) for i in range(D)]  # ↓反向传播
+        dt = [dh[i]*(1 - h[i]**2) for i in range(D)]              # 穿过 tanh(链式法则!)
+        dx = [sum(dt[j]*W1[i][j] for j in range(D)) for i in range(D)]
+        for i in range(D):                                        # 梯度下降(第一册)
+            for j in range(n): W2[i][j] -= lr * h[i] * dz[j]
+            for j in range(D): W1[i][j] -= lr * x[i] * dt[j]
+            E[idx[prev]][i] -= lr * dx[i]                         # embedding 也在学!
+    if epoch % 60 == 0 or epoch == 239:
+        print(f"第{epoch:3d}轮   平均罚分 = {loss/len(pairs):.3f}")
+
+w = "今天"; sent = [w]                          # 推理:接龙(第一册第四课)
+for _ in range(4):
+    _, _, _, p = forward(w)
+    w = max(vocab, key=lambda t: p[idx[t]]); sent.append(w)
+print("模型接龙:", " ".join(sent))</pre>
+    <pre class="pyout" hidden></pre>
+  </div>
+  <div class="backline" style="margin-top:16px">跑通之后的三个实验:① 把 <span class="mono">D</span> 改成 1(隐藏层瘦成一根针),罚分还降得下去吗?② 把 <span class="mono">math.tanh</span> 换成 <span class="mono">lambda v: v</span>(去掉掰弯器),对比最终罚分——第二课的预言当场应验;③ 数一数参数总量(E + W1 + W2),对比第一册彩蛋那张 n×n 的表。从这份代码到 GPT,只差三件事:把隐藏层换成 96 层「Attention+FFN+残差」、把语料换成半个互联网、把 for 循环搬到几万块 GPU 上。</div>
+</section>
+
+<div class="bridge next-book">
+  <span class="btag">下一册</span>
+  <h3>第四册 · 从接龙到助手:SFT、RLHF 与推理工程</h3>
+  <p>整机装好、训练跑通——但此刻你手里只是一台"接龙机器":它会续写,不会对话;你问它问题,它可能反问你三个。从"会接龙"到"ChatGPT",还差三步驯化和一套推理工程。下一册讲这台机器如何被教会"好好说话"。</p>
+  <a class="btn" href="04-assistant.html">进入第四册 →</a>
+  <div class="nb-from">← 或回到 <a href="02-tokens.html">第二册 · 向量从哪来</a> / <a href="index.html">总目录</a></div>
+</div>
+
+<footer>看懂大模型 · 第三册 拆开整机 —— 所有计算都在你的浏览器里实时进行。</footer>
+</main>
+
+<script src="assets/common.js"></script>
+<script>
+/* ==================== 第一课 多头 ==================== */
+const MH_WORDS=['小猫','追','老鼠','因为','它','饿','了'];
+const MH={
+ A:{w:[0.52,0.04,0.16,0.05,0.08,0.11,0.04],
+    note:'<b>头 A(指代头):</b>「它」把 52% 的注意力压在「小猫」上——第一册第五课你见过的那双眼睛,专管"它指谁"。'},
+ B:{w:[0.02,0.02,0.06,0.38,0.10,0.30,0.12],
+    note:'<b>头 B(语境头):</b>同一个「它」,这个头几乎不看「小猫」,注意力全在「因为…饿」——它专管因果语境。两个头参数不同,看点完全不同。'},
+ C:{w:null,
+    note:'<b>拼接:</b>头 A 的输出(装着"小猫")和头 B 的输出(装着"因为饿")首尾接在一起再混合——「它」的新向量同时知道"我指小猫"和"我处在因果句里"。'}};
+function mhRender(sel){
+  ['A','B','C'].forEach(k=>$('#hb'+k).classList.toggle('ghost',k!==sel));
+  if(sel==='C'){
+    const cols=MH_WORDS.map((w,i)=>{
+      const a=MH.A.w[i],b=MH.B.w[i];
+      return `<div class="acol"><div class="stick" style="gap:2px">
+        <i style="height:${a/0.52*100}%;width:34%"></i><i style="height:${b/0.52*100}%;width:34%;background:#D1495B"></i></div>
+        <div class="al">${w}</div><div class="ap">${(a*100).toFixed(0)}/${(b*100).toFixed(0)}%</div></div>`;
+    }).join('');
+    $('#mhCols').innerHTML=cols;
+  }else{
+    const ws=MH[sel].w,mx=Math.max(...ws);
+    $('#mhCols').innerHTML=MH_WORDS.map((w,i)=>
+      `<div class="acol${ws[i]===mx?' max':''}"><div class="stick"><i style="height:${ws[i]/mx*100}%${sel==='B'?';background:#D1495B':''}"></i></div>
+       <div class="al">${w}</div><div class="ap">${(ws[i]*100).toFixed(0)}%</div></div>`).join('');
+  }
+  $('#mhNote').innerHTML=MH[sel].note;
+}
+['A','B','C'].forEach(k=>$('#hb'+k).addEventListener('click',()=>mhRender(k)));
+mhRender('A');
+
+/* ==================== 第二课 FFN ==================== */
+let ffnBend=true;
+const FS={W:340,H:230,pl:36,pr:12,pt:14,pb:30,xmax:5,ymin:-1.2,ymax:2.6};
+const fx=x=>FS.pl+x/FS.xmax*(FS.W-FS.pl-FS.pr);
+const fy=y=>FS.H-FS.pb-(y-FS.ymin)/(FS.ymax-FS.ymin)*(FS.H-FS.pt-FS.pb);
+const relu=v=>Math.max(0,v);
+function ffnCalc(x){
+  const g=ffnBend?relu:(v=>v);
+  const h1=g(x-1),h2=g(x-3);
+  return {h1,h2,y:h1-2*h2};
+}
+function ffnDraw(){
+  let d='';
+  for(let x=0;x<=FS.xmax+1e-9;x+=0.05){
+    const y=Math.max(Math.min(ffnCalc(x).y,FS.ymax),FS.ymin);
+    d+=(d?'L':'M')+f2(fx(x),1)+' '+f2(fy(y),1)+' ';
+  }
+  $('#ffnSvg').innerHTML=`
+   <line x1="${FS.pl}" y1="${fy(0)}" x2="${FS.W-FS.pr}" y2="${fy(0)}" stroke="#B9C4D2"/>
+   <text x="${fx(2.5)}" y="${FS.H-8}" font-size="11" fill="#5C6B82" text-anchor="middle">输入 x →</text>
+   <text x="${FS.pl+2}" y="${FS.pt+10}" font-size="11" fill="#5C6B82">输出 y</text>
+   <path d="${d}" fill="none" stroke="${ffnBend?'#0E7C7B':'#D1495B'}" stroke-width="2.5"/>
+   <circle id="ffnDot" r="7" fill="#FFE163" stroke="#1F2B3E" stroke-width="2"/>`;
+  ffnRender();
+}
+function ffnRender(){
+  const x=+$('#ffnX').value,{h1,h2,y}=ffnCalc(x);
+  $('#ffnXv').textContent=f2(x);
+  $('#ffnH1e').textContent=(ffnBend?'ReLU':'')+`(${f2(x)} − 1)`;
+  $('#ffnH2e').textContent=(ffnBend?'ReLU':'')+`(${f2(x)} − 3)`;
+  $('#ffnH1').textContent=f2(h1); $('#ffnH2').textContent=f2(h2); $('#ffnY').textContent=f2(y);
+  const dot=$('#ffnDot');
+  dot.setAttribute('cx',fx(x)); dot.setAttribute('cy',fy(Math.max(Math.min(y,FS.ymax),FS.ymin)));
+  $('#ffnMsg').textContent=ffnBend?
+    (x<1?'两个神经元都在"闸门关闭"区,输出 0——直线的第一段。':
+     x<3?'神经元1 已开闸、神经元2 还关着——上坡段。':
+     '两个都开闸,但神经元2 带 −2 的权重——过了山顶,下坡。'):
+    '没有掰弯器:两段线性变换合并成一条直线 y = −x + 5,拐点消失。这就是"没有隐藏层的非线性,深度毫无意义"。';
+  $('#ffnTitle').textContent=ffnBend?'输出曲线:y(x) —— 注意 x=1 和 x=3 处的"拐点"':'输出曲线:没有 ReLU,只剩一条直线';
+}
+$('#ffnX').addEventListener('input',ffnRender);
+$('#ffnRelu').addEventListener('click',()=>{
+  ffnBend=!ffnBend;
+  $('#ffnRelu').textContent=ffnBend?'去掉 ReLU 🔧':'装回 ReLU ✅';
+  $('#ffnRelu').classList.toggle('warn',ffnBend);
+  ffnDraw();
+});
+ffnDraw();
+
+/* ==================== 第三课 残差 ==================== */
+function resRender(){
+  const N=+$('#resN').value;
+  $('#resNv').textContent=N;
+  const v1=Math.pow(0.9,N);
+  $('#resB1').style.width=(v1*100)+'%';
+  $('#resP1').textContent=(v1*100).toFixed(1)+'%';
+  $('#resV1').textContent='0.9^'+N+' = '+v1.toFixed(4);
+  $('#resV1').className='res-big'+(v1<0.1?' dead':'');
+  $('#resB2').style.width='100%';
+  $('#resP2').textContent='100%';
+  $('#resV2').textContent='≈ 1.0(每层整队一次)';
+  $('#resMsg').textContent =
+    N>=30?'信号只剩 '+(v1*100).toFixed(1)+'%——反向传播的梯度同样按这个比例消失,底层参数等于失联。右边那栋楼却安然无恙。':
+    N>=10?'衰减已经很明显了。继续拖到 40 层看看。':
+    '浅楼时两边差别不大——深度上去之后,直通道才显出生死之别。';
+}
+$('#resN').addEventListener('input',resRender);
+resRender();
+
+/* ==================== 第四课 反向传播 ==================== */
+const BP={x:1.5,y:1.0};
+function bpRender(numMsg){
+  const w1=+$('#bpW1').value,w2=+$('#bpW2').value;
+  $('#bpW1v').textContent=f2(w1); $('#bpW2v').textContent=f2(w2);
+  const a=w1*BP.x, h=Math.tanh(a), yh=w2*h, L=(yh-BP.y)**2;
+  $('#bpFwd').innerHTML=`
+    <span class="cf-node"><span class="cfl">输入 x</span><b>${f2(BP.x)}</b></span><span class="cf-arrow">→ ×w₁ →</span>
+    <span class="cf-node"><span class="cfl">a = w₁x</span><b>${f2(a)}</b></span><span class="cf-arrow">→ tanh →</span>
+    <span class="cf-node"><span class="cfl">h(掰弯后)</span><b>${f2(h)}</b></span><span class="cf-arrow">→ ×w₂ →</span>
+    <span class="cf-node"><span class="cfl">预测 ŷ</span><b>${f2(yh)}</b></span><span class="cf-arrow">→ 对照 y=1 →</span>
+    <span class="cf-node"><span class="cfl">罚分 L=(ŷ−y)²</span><b>${f2(L)}</b></span>`;
+  const g1=2*(yh-BP.y), g2=w2, g3=1-h*h, g4=BP.x, gw1=g1*g2*g3*g4;
+  $('#bpBwd').innerHTML=`
+    <span class="cf-node cf-grad"><span class="cfl">dL/dŷ</span><b>${f2(g1)}</b></span><span class="cf-arrow">×</span>
+    <span class="cf-node cf-grad"><span class="cfl">dŷ/dh = w₂</span><b>${f2(g2)}</b></span><span class="cf-arrow">×</span>
+    <span class="cf-node cf-grad"><span class="cfl">dh/da = 1−h²</span><b>${f2(g3)}</b></span><span class="cf-arrow">×</span>
+    <span class="cf-node cf-grad"><span class="cfl">da/dw₁ = x</span><b>${f2(g4)}</b></span><span class="cf-arrow">=</span>
+    <span class="cf-node cf-grad"><span class="cfl">dL/dw₁(梯度!)</span><b>${f2(gw1,4)}</b></span>`;
+  $('#bpMsg').textContent=numMsg!==undefined?numMsg:
+    '拖动两个参数,看四段坡度和它们的乘积怎么变。想抓包?按下面的按钮做数值验证。';
+  return gw1;
+}
+$('#bpW1').addEventListener('input',()=>bpRender());
+$('#bpW2').addEventListener('input',()=>bpRender());
+$('#bpCheck').addEventListener('click',()=>{
+  const w1=+$('#bpW1').value,w2=+$('#bpW2').value,eps=1e-6;
+  const Lf=v=>(w2*Math.tanh(v*BP.x)-BP.y)**2;
+  const num=(Lf(w1+eps)-Lf(w1-eps))/(2*eps);
+  const chain=bpRender();
+  bpRender(`数值验证:(L(w₁+ε) − L(w₁−ε)) / 2ε = ${f2(num,4)},链式法则连乘 = ${f2(chain,4)}——分毫不差。反向传播不是近似,是精确值。`);
+});
+bpRender();
+
+/* ==================== 预测门 ==================== */
+const GATES={
+ ffn:{ans:1,right:'答对了。两段线性变换套在一起,合并同类项后仍是一条直线——去掉掰弯器,深度作废。去实验里按下那个开关。',
+      wrong:'实验已解锁——按"去掉 ReLU"开关亲眼看看:线性套线性,还是线性。'}};
+bindGates(GATES);
+</script>
+</body>
+</html>
