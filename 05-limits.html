@@ -23,7 +23,7 @@
 .finale p{max-width:760px}
 </style>
 </head>
-<body data-prog-total="7">
+<body data-prog-total="10">
 <nav>
   <div class="nav-in">
     <span class="nav-brand">边界与真相</span>
@@ -32,7 +32,7 @@
     <a class="nav-chip" href="#c3" data-nav="c3">3 模型≠数据库</a>
     <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
     <a class="nav-chip" href="#c9" data-nav="c9">大结局</a>
-    <span class="nav-chip" id="navProg">掌握 0/7</span>
+    <span class="nav-chip" id="navProg">掌握 0/10</span>
   </div>
   <div class="series-in">
     <a class="sbook" href="index.html">📖 总目录</a>
@@ -57,9 +57,21 @@
   <p class="ch-lede">从第一册的玩具模型到 GPT-4,公式一行没换。变的只有三个数:参数量、数据量、算力。而 2020 年的发现是:<b>罚分随这三个数的增长,呈教科书般平滑的直线下降</b>(在对数坐标下)——这条经验规律叫 scaling law。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>从玩具模型到 GPT-4,公式一行没换——那"魔法"到底在哪?</h3>
+    <p>变的只有三个数:参数量、数据量、算力。惊人的是:罚分随它们的增长,在对数坐标下几乎是一条<b>平滑直线</b>。这意味着什么?</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>把模型从一百万参数拉到一万亿,看罚分曲线</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">参数量每翻约 10 倍,平均罚分大致会?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="sc" data-i="0">忽上忽下,毫无规律</button><button class="btn ghost g-opt" data-g="sc" data-i="1">稳定往下掉一小格(对数坐标下近乎直线)</button><button class="btn ghost g-opt" data-g="sc" data-i="2">降到某点后突然归零</button></div>
+      <div class="gate-res" id="gres-sc">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-sc">
       <div class="slider-row" style="max-width:480px"><label>参数量</label><input type="range" id="scN" min="6" max="12" step="0.1" value="6"><span class="val" id="scNv">10⁶</span></div>
       <svg id="scSvg" viewBox="0 0 700 300" width="100%"></svg>
       <div class="readout">
@@ -81,6 +93,16 @@
       </div>
       <div class="tip" id="scTip">把鼠标移到公式的某一项上试试 →</div>
       <div class="fnote">推论一:<b>可预测</b>——训练 GPT-4 之前,OpenAI 用千分之一算力的小模型就预测出了它的最终罚分,烧几亿美元前先看到了答案。推论二:<b>不可预测</b>——罚分平滑下降,但某些<b>具体能力</b>(多步推理、按示例学习)会在某个规模附近突然"冒出来",小模型上完全测不到,这被称为"涌现"(是否只是测量方式造成的错觉,学界仍在争论)。注意:scaling law 是<b>经验规律</b>,像摩尔定律,不是数学定理——没人保证它永远延续。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>数一数"翻了几个 10 倍"</h3>
+    <div class="verify">
+      从 10⁶ 到 10¹²,每次翻 10 倍算一格:<br>
+      <span class="mono">10⁶ → 10⁷ → 10⁸ → 10⁹ → 10¹⁰ → 10¹¹ → 10¹²</span> —— 共翻了 <b>6</b> 格。
+      <div class="try" data-exp="3" data-tol="0.01" data-key="t0"><span>✍️ 轮到你:从 10⁸ 到 10¹¹,翻了几个 10 倍?</span><input type="number" step="1" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -111,7 +133,7 @@ for e in range(6, 13):                         # 10^6 → 10^12
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q1" data-fbok="正确——它是大量实验拟合出的经验规律(像摩尔定律),迄今惊人地稳定,但没有数学证明兜底。" data-fbbad="回看规律盒最后一句:它更像摩尔定律,还是像勾股定理?">
-      <h3>Scaling law 的性质更接近?</h3><button class="q-opt" data-ok="0">数学定理:已被严格证明,永远成立</button><button class="q-opt" data-ok="1">经验规律:实测拟合、迄今稳定,但无人保证永远延续</button><div class="q-fb"></div>
+      <h3>Scaling law 的性质更接近?</h3><div><span class="q-fml">L ≈ a / N<sup>α</sup>(经验幂律)</span></div><button class="q-opt" data-ok="0">数学定理:已被严格证明,永远成立</button><button class="q-opt" data-ok="1">经验规律:实测拟合、迄今稳定,但无人保证永远延续</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -129,9 +151,21 @@ for e in range(6, 13):                         # 10^6 → 10^12
   <p class="ch-lede">"幻觉"不是 bug,不是偶发故障,而是这套机制的<b>必然产物</b>:模型被训练成"永远接出最像下文的词"——哪怕它对答案一无所知,接龙也不会停下来,而且每一步都同样自信。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>它一本正经地编造事实时,自己知道在编吗?</h3>
+    <p>训练从头到尾只奖励"接得像",没有任何环节校验"说得真"。知识缺口出现时,softmax 仍然会吐出一个最高分词——听起来像答案,其实是最像答案的碎片缝合。</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>亲手触发一次幻觉(用你已经很熟的玩具模型)</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">语料里从未出现「曹操的朋友」。你猜问「曹操 的 朋友 是 ___」,它会?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="hal" data-i="0">老实回答"不知道"</button><button class="btn ghost g-opt" data-g="hal" data-i="1">流畅地编出一个听起来很像的答案</button><button class="btn ghost g-opt" data-g="hal" data-i="2">直接报错停机</button></div>
+      <div class="gate-res" id="gres-hal">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-hal">
       <div class="w-title">模型的全部知识,只有这四句训练语料:</div>
       <div class="mem-chip" style="display:inline-block">李白 是 诗人 。&nbsp;&nbsp;杜甫 是 诗人 。&nbsp;&nbsp;曹操 是 武将 。&nbsp;&nbsp;李白 的 朋友 是 杜甫 。</div>
       <div class="btn-row" style="margin-top:14px">
@@ -155,6 +189,21 @@ for e in range(6, 13):                         # 10^6 → 10^12
       <div class="tip">把鼠标移到三条的关键词上试试 →</div>
       <div class="fnote">对策(缓解,非根治):让它<b>查了再答</b>(联网/RAG,把事实放进上下文窗口——第四册第三课);让它<b>展示推理过程</b>;对关键事实<b>永远交叉核验</b>。使用铁律:<b>它的流畅度和可信度无关</b>——这正是它与人最不像的地方:人编瞎话时多少会心虚,它不会。</div>
     </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>看清"自信度"骗不骗人</h3>
+    <div class="verify">
+      假设某步三个候选概率是 0.55、0.30、0.15(和为 1):<br>
+      <span class="mono">最高分 = 0.55 → 模型会输出它,并显示 55% 自信</span> —— 哪怕正确答案根本不在候选里。
+      <div class="try" data-exp="0.4" data-tol="0.01" data-key="t1"><span>✍️ 轮到你:概率 0.4、0.35、0.25,模型会以多大概率输出最高分词?(填小数)</span><input type="number" step="0.01" class="t-in" placeholder="0.??"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">回到大模型</span>
+    <div class="backline">这就是使用铁律:<b>流畅度 ≠ 可信度</b>。它引用的论文标题、法条编号、医学剂量,都可以像真话一样自信——因为走的是同一条流水线。关键事实永远交叉核验;能联网/RAG 时,把原文放进窗口再让它组织(第四册第三课)。</div>
   </div>
 
   <details class="pydet">
@@ -200,7 +249,7 @@ print("没见过的:", ask(["曹操", "的"]))
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q2" data-fbok="正确——训练从头到尾只奖励'像下文',幻觉是这个目标函数的必然副产品。" data-fbbad="回想罚分公式罚的是什么:接得像不像,还是说得真不真?">
-      <h3>大模型幻觉的根本原因是?</h3><button class="q-opt" data-ok="0">训练数据里错误信息太多</button><button class="q-opt" data-ok="1">训练目标只奖励"接得像",没有任何环节校验"说得真"</button><button class="q-opt" data-ok="0">服务器负载太高时开始乱答</button><div class="q-fb"></div>
+      <h3>大模型幻觉的根本原因是?</h3><div><span class="q-fml">L = −ln p(正确词) —— 只罚"不像",不罚"不真"</span></div><button class="q-opt" data-ok="0">训练数据里错误信息太多</button><button class="q-opt" data-ok="1">训练目标只奖励"接得像",没有任何环节校验"说得真"</button><button class="q-opt" data-ok="0">服务器负载太高时开始乱答</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -218,9 +267,21 @@ print("没见过的:", ask(["曹操", "的"]))
   <p class="ch-lede">数据库存原文,查询返回精确记录;模型把语料<b>压缩成统计规律</b>,回答时按概率<b>重构</b>一个答案。理解这一点,你就知道什么问题该问它、什么不该。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>几万亿词的语料,怎么装进几百 GB 的参数里?</h3>
+    <p>装不下原文。模型存的不是句子,是<b>统计规律</b>——比例、关联、风格。回答 = 用这些规律现场重构。重构所以流畅;有损所以会错。</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>它存的不是句子,是比例——你亲手改改看</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">语料里「很好」3 句、「很冷」1 句。模型实际"记住"的更接近?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="mem" data-i="0">那 4 句原文,随时可原样调出</button><button class="btn ghost g-opt" data-g="mem" data-i="1">一个比例:p(好|很)≈0.75</button><button class="btn ghost g-opt" data-g="mem" data-i="2">只有最新加进去的那一句</button></div>
+      <div class="gate-res" id="gres-mem">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-mem">
       <div class="w-title">往玩具模型的语料里加句子,观察「天气 很 ___」的概率怎么变</div>
       <div class="mem-count" id="memCount"></div>
       <div class="btn-row">
@@ -246,6 +307,16 @@ print("没见过的:", ask(["曹操", "的"]))
         <div class="c2row"><span class="c2l">模型参数</span><div class="bar-track"><div class="bar-fill" style="width:2.5%"></div></div><span class="c2v">~ 几百 GB</span></div>
       </div>
       <div class="fnote" style="margin-top:14px">压缩比约百分之一,且<b>不可逆</b>——这不是 zip(能原样解压),而更像人读完一万本书后的"学识":书没背下来,但规律、风格、事实间的关联都在。回答问题 = 用这些规律<b>现场重构</b>一个答案。重构,所以流畅;有损,所以会错。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>口算一次"比例记忆"</h3>
+    <div class="verify">
+      语料:「很好」3 句 +「很冷」1 句。粗算 p(好 | 很):<br>
+      <span class="mono">3 / (3+1) = <b>0.75</b></span> —— 模型"记住"的就是这类比例,不是原句。
+      <div class="try" data-exp="0.5" data-tol="0.01" data-key="t2"><span>✍️ 轮到你:「很好」2 句 + 「很冷」2 句,p(好|很) ≈ ?</span><input type="number" step="0.01" class="t-in" placeholder="0.?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -285,7 +356,7 @@ for good, cold in [(3, 1), (1, 1), (1, 3)]:
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q3" data-fbok="正确——压缩保留规律、丢弃记录;生成靠重构,检索靠原文。" data-fbbad="想想压缩最先丢掉什么、最能保留什么。">
-      <h3>下面哪类任务最不该单独交给(不联网的)大模型?</h3><button class="q-opt" data-ok="0">把一段话改写得更礼貌</button><button class="q-opt" data-ok="1">查某条法规第几条第几款的原文</button><button class="q-opt" data-ok="0">解释一个物理概念</button><div class="q-fb"></div>
+      <h3>下面哪类任务最不该单独交给(不联网的)大模型?</h3><div><span class="q-fml">有损压缩:保留规律,丢弃精确记录</span></div><button class="q-opt" data-ok="0">把一段话改写得更礼貌</button><button class="q-opt" data-ok="1">查某条法规第几条第几款的原文</button><button class="q-opt" data-ok="0">解释一个物理概念</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -296,13 +367,13 @@ for good, cold in [(3, 1), (1, 1), (1, 3)]:
   <p class="ch-lede">四道判断题,全对即全系列毕业:</p>
   <div class="w-grid">
     <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回看第一课:训练前用小模型的曲线外推——可预测的是罚分,不是具体能力。">
-      <h3>① 训练一个超大模型前,工程团队能提前知道什么?</h3><button class="q-opt" data-ok="1">最终罚分(用小模型外推 scaling law),但具体能力未必</button><button class="q-opt" data-ok="0">什么都无法预知,只能赌</button><button class="q-opt" data-ok="0">连它会写什么诗都能精确预测</button><div class="q-fb"></div></div>
+      <h3>① 训练一个超大模型前,工程团队能提前知道什么?</h3><div><span class="q-fml">L ≈ a / N<sup>α</sup> → 可外推罚分</span></div><button class="q-opt" data-ok="1">最终罚分(用小模型外推 scaling law),但具体能力未必</button><button class="q-opt" data-ok="0">什么都无法预知,只能赌</button><button class="q-opt" data-ok="0">连它会写什么诗都能精确预测</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="第二课使用铁律:流畅度与可信度无关。">
-      <h3>② 模型引用了一篇标题、作者、年份俱全的论文,你应该?</h3><button class="q-opt" data-ok="0">格式这么完整,基本可信</button><button class="q-opt" data-ok="1">照样核验——编造的引用和真实引用一样流畅、一样自信</button><div class="q-fb"></div></div>
+      <h3>② 模型引用了一篇标题、作者、年份俱全的论文,你应该?</h3><div><span class="q-fml">流畅度 ≠ 可信度</span></div><button class="q-opt" data-ok="0">格式这么完整,基本可信</button><button class="q-opt" data-ok="1">照样核验——编造的引用和真实引用一样流畅、一样自信</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="把事实放进上下文窗口(第四册第三课),模型基于眼前的原文作答——这正是补'有损压缩'短板。">
-      <h3>③ "联网搜索 + 大模型"组合有效,是因为?</h3><button class="q-opt" data-ok="1">检索负责精确原文,放进窗口;模型负责理解与组织——两种存储各补所短</button><button class="q-opt" data-ok="0">联网时模型参数会实时更新</button><div class="q-fb"></div></div>
+      <h3>③ "联网搜索 + 大模型"组合有效,是因为?</h3><div><span class="q-fml">检索 = 精确原文;模型 = 理解与组织</span></div><button class="q-opt" data-ok="1">检索负责精确原文,放进窗口;模型负责理解与组织——两种存储各补所短</button><button class="q-opt" data-ok="0">联网时模型参数会实时更新</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确——机制上它每一步都在算下一个 token 的概率分布;'理解'与否是哲学争论,但机制没有争议。" data-fbbad="回到第一册第四课:它执行的是哪个公式?">
-      <h3>④ 剥去所有产品包装,推理时模型每一步在做的事是?</h3><button class="q-opt" data-ok="0">在内部知识库里检索答案</button><button class="q-opt" data-ok="1">基于窗口内全部内容,算出下一个 token 的概率分布,然后掷骰子</button><button class="q-opt" data-ok="0">和你建立情感连接</button><div class="q-fb"></div></div>
+      <h3>④ 剥去所有产品包装,推理时模型每一步在做的事是?</h3><div><span class="q-fml">P(w<sub>t</sub> | w<sub>1</sub>…w<sub>t−1</sub>) → 采样</span></div><button class="q-opt" data-ok="0">在内部知识库里检索答案</button><button class="q-opt" data-ok="1">基于窗口内全部内容,算出下一个 token 的概率分布,然后掷骰子</button><button class="q-opt" data-ok="0">和你建立情感连接</button><div class="q-fb"></div></div>
   </div>
   <div class="verify" id="gradBox" data-done="🎓🎓 全系列毕业!你已经能从机制出发判断它能做什么、不能做什么、该信几分——这就是'看懂'的意思。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
 </section>
@@ -323,7 +394,30 @@ for good, cold in [(3, 1), (1, 1), (1, 3)]:
 
 <footer>看懂大模型 · 第五册 边界与真相 —— 全系列完。所有计算都在你的浏览器里实时进行。</footer>
 </main>
-
+<button class="float-help" id="helpBtn" aria-label="打开公式与符号急救包">√?<small>公式·符号</small></button>
+<div class="help-mask" id="helpMask"></div>
+<aside class="help-panel" id="helpPanel" aria-label="公式与符号急救包">
+  <div class="hp-head"><h3>公式 · 符号急救包</h3><button class="hp-close" id="helpClose" aria-label="关闭">×</button></div>
+  <p class="small">忘了哪条规律、哪个符号,在这里查完接着学。点条目可跳回对应课复习。</p>
+  <div class="sym-group"><h4>本册速查</h4>
+    <button class="fml-row" data-go="c1"><span class="fl"><span class="fn2">① Scaling Law</span><span class="fd">越大越好的幂律</span><span class="fgo">第一课 ↗</span></span><span class="ff">L ≈ a / N<sup>α</sup></span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">② 幻觉</span><span class="fd">流畅 ≠ 可信</span><span class="fgo">第二课 ↗</span></span><span class="ff">训练只奖"像",不奖"真"</span></button>
+    <button class="fml-row" data-go="c3"><span class="fl"><span class="fn2">③ 有损压缩</span><span class="fd">模型 ≠ 数据库</span><span class="fgo">第三课 ↗</span></span><span class="ff">存比例与规律,现场重构答案</span></button>
+  </div>
+  <div class="sym-group"><h4>第一课 · 规模</h4>
+    <div class="sym-row"><span class="sy">N<sup>α</sup></span><span><span class="sn">参数量的幂</span><br><span class="sm2">α 是很小的正数(论文约 0.076)。对数坐标下,N 每翻 10 倍,罚分稳定降一小格。</span></span></div>
+    <div class="sym-row"><span class="sy">涌现</span><span><span class="sn">emergent ability</span><br><span class="sm2">某些能力在规模阈值附近突然出现。是否只是测量假象,学界仍在争论。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第二课 · 幻觉</h4>
+    <div class="sym-row"><span class="sy">幻觉</span><span><span class="sn">hallucination</span><br><span class="sm2">流畅、自信、但事实错误的输出。不是偶发故障,是"只训接得像"的必然产物。</span></span></div>
+    <div class="sym-row"><span class="sy">RAG</span><span><span class="sn">检索增强生成</span><br><span class="sm2">先查到原文放进上下文窗口,再让模型基于眼前的事实作答——缓解幻觉的主流办法。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第三课 · 压缩</h4>
+    <div class="sym-row"><span class="sy">有损</span><span><span class="sn">lossy compression</span><br><span class="sm2">压缩后无法还原原文。模型保留规律、丢掉精确记录——所以擅长解释,不擅长背法条。</span></span></div>
+    <div class="sym-row"><span class="sy">重构</span><span><span class="sn">按概率现场生成</span><br><span class="sm2">回答不是从库里取出记录,而是用学到的统计规律逐步掷骰子拼出来。</span></span></div>
+  </div>
+  <p class="small" style="margin-top:16px">前四册的公式与符号,在各自右下角的同款浮窗里。</p>
+</aside>
 <script src="assets/common.js"></script>
 <script>
 /* ==================== 第一课 Scaling ==================== */
@@ -420,6 +514,16 @@ $('#memAddGood').addEventListener('click',()=>{memG++;memRender();});
 $('#memAddCold').addEventListener('click',()=>{memC++;memRender();});
 $('#memReset').addEventListener('click',()=>{memG=3;memC=1;memRender();});
 memRender();
+
+/* ==================== 预测门 ==================== */
+const GATES={
+ sc:{ans:1,right:'答对了——对数坐标下近乎直线下降。去拖滑块看罚分怎么稳稳往下走。',
+     wrong:'实验已解锁——拖参数量滑块:罚分沿一条平滑曲线下降,不是乱跳也不是突然归零。'},
+ hal:{ans:1,right:'没错——它不会说不知道,会流畅地缝一个最像答案的东西。去按红色按钮亲眼看。',
+      wrong:'实验已解锁——按「问它没见过的」:它会自信地编出「曹操的朋友是诗人」之类。'},
+ mem:{ans:1,right:'正确——它存的是比例,不是原文。去加点句子,看柱子怎么变、句子数却不进参数。',
+      wrong:'实验已解锁——多加几句「很好」或「很冷」,观察概率柱:变的是比例,不是在存原文。'}};
+bindGates(GATES);
 </script>
 </body>
 </html>

@@ -24,7 +24,7 @@
 .cmp-table td.same{color:var(--sub)}
 </style>
 </head>
-<body data-prog-total="8">
+<body data-prog-total="10">
 <nav>
   <div class="nav-in">
     <span class="nav-brand">向量从哪来</span>
@@ -34,7 +34,7 @@
     <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
     <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
     <a class="nav-chip" href="#c8" data-nav="c8">彩蛋</a>
-    <span class="nav-chip" id="navProg">掌握 0/8</span>
+    <span class="nav-chip" id="navProg">掌握 0/10</span>
   </div>
   <div class="series-in">
     <a class="sbook" href="index.html">📖 总目录</a>
@@ -67,7 +67,13 @@
   <div class="stage">
     <span class="tag">动手玩</span>
     <h3>亲手切几句话——注意 token 不等于字,也不等于词</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">你猜:「今天天气很好」这 6 个字,会被切成几个 token?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="tok" data-i="0">6 个(一字一块)</button><button class="btn ghost g-opt" data-g="tok" data-i="1">3 个</button><button class="btn ghost g-opt" data-g="tok" data-i="2">1 个(整句一块)</button></div>
+      <div class="gate-res" id="gres-tok">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-tok">
       <input class="tok-in" id="tokIn" value="今天天气很好" aria-label="输入要分词的文本">
       <div class="btn-row">
         <button class="btn ghost tok-preset" data-t="今天天气很好">今天天气很好</button>
@@ -96,6 +102,16 @@
       </div>
       <div class="tip">把鼠标移到句子的某一部分上试试 →</div>
       <div class="fnote">这个算法叫 <code>BPE(Byte Pair Encoding,字节对编码)</code>。词表大小(比如 10 万)是人定的,但<b>哪些块进词表,完全由数据里的出现频率决定</b>——所以英语里 "the" 是一整块,而生僻词会碎成渣。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>口算一次贪心最长匹配</h3>
+    <div class="verify">
+      玩具词表里有「un」「happi」「ness」「happy」。切「unhappiness」:<br>
+      <span class="mono">从左扫:「un」命中 → 「happi」命中 → 「ness」命中</span> —— 切成 <b>3</b> 块(不是 1 个整词)。
+      <div class="try" data-exp="2" data-tol="0.01" data-key="t0"><span>✍️ 轮到你:词表有「straw」「berry」「apple」。输入 strawberry,切成几块?</span><input type="number" step="1" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -132,7 +148,7 @@ for step in range(6):                           # BPE:重复合并 6 次
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q1" data-fbok="正确——模型看到的是「straw」「berry」两块砖的编号,里面有几个 r 它从没'看见'过。" data-fbbad="回想上面的实验:strawberry 被切成了几块?模型看到的是块的编号,不是字母。">
-      <h3>为什么大模型经常数不清「strawberry」里有几个 r?</h3><button class="q-opt" data-ok="0">模型数学不好,不会数数</button><button class="q-opt" data-ok="1">它看到的是「straw」「berry」两个整块 token,不是字母</button><button class="q-opt" data-ok="0">r 这个字母不在词表里</button><div class="q-fb"></div>
+      <h3>为什么大模型经常数不清「strawberry」里有几个 r?</h3><div><span class="q-fml">贪心最长匹配:strawberry → [straw][berry]</span></div><button class="q-opt" data-ok="0">模型数学不好,不会数数</button><button class="q-opt" data-ok="1">它看到的是「straw」「berry」两个整块 token,不是字母</button><button class="q-opt" data-ok="0">r 这个字母不在词表里</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -158,7 +174,13 @@ for step in range(6):                           # BPE:重复合并 6 次
   <div class="stage">
     <span class="tag">动手玩</span>
     <h3>点两个词,看它们在语义地图上有多"合拍"</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">你猜:地图上「猫」离谁更近?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="emb" data-i="0">汽车(都是常见名词)</button><button class="btn ghost g-opt" data-g="emb" data-i="1">狗(同类动物)</button><button class="btn ghost g-opt" data-g="emb" data-i="2">一样远——编号相邻才近</button></div>
+      <div class="gate-res" id="gres-emb">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-emb">
       <div class="w-grid">
         <div>
           <svg id="embSvg" class="emb-svg" viewBox="0 0 360 320" width="100%"></svg>
@@ -232,7 +254,7 @@ print("国王 − 男人 + 女人 =", t, "→ 最接近:", best)</pre>
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q2" data-fbok="正确。E 是参数,和第一册彩蛋里的 W 一样被梯度下降一格格调出来——'含义'是训练的副产品。" data-fbbad="想想 E 的初始值是什么(随机数),以及第一册第三课的更新公式对谁生效。">
-      <h3>embedding 表里"猫和狗挨得近",是谁安排的?</h3><button class="q-opt" data-ok="0">工程师按词典手工填的</button><button class="q-opt" data-ok="1">训练出来的:E 也是参数,被梯度下降从随机数一路调出来</button><button class="q-opt" data-ok="0">分词算法顺便算好的</button><div class="q-fb"></div>
+      <h3>embedding 表里"猫和狗挨得近",是谁安排的?</h3><div><span class="q-fml">x = E[编号],E 是参数</span></div><button class="q-opt" data-ok="0">工程师按词典手工填的</button><button class="q-opt" data-ok="1">训练出来的:E 也是参数,被梯度下降从随机数一路调出来</button><button class="q-opt" data-ok="0">分词算法顺便算好的</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -258,7 +280,13 @@ print("国王 − 男人 + 女人 =", t, "→ 最接近:", best)</pre>
   <div class="stage">
     <span class="tag">动手玩 ①</span>
     <h3>开关位置编码,对比两句话里每个词的"真实输入"</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">不加位置编码,把「猫咬狗」打乱成「狗咬猫」——「猫」这个词送进 Attention 的输入向量会变吗?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="pe" data-i="0">会变——它的位置不同了</button><button class="btn ghost g-opt" data-g="pe" data-i="1">完全不变</button></div>
+      <div class="gate-res" id="gres-pe">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-pe">
       <div class="btn-row" style="margin-top:0">
         <button class="btn" id="peOff">不加位置编码 🙈</button>
         <button class="btn ghost" id="peOn">加上位置编码 📍</button>
@@ -292,6 +320,18 @@ print("国王 − 男人 + 女人 =", t, "→ 最接近:", best)</pre>
   </div>
 
   <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>拿动手玩①里的「猫」核对一次</h3>
+    <div class="verify">
+      「猫」的词向量 = (1.0, 0.2),位置 0 的位置向量 = (0.10, 0.00):<br>
+      <span class="mono">句1(位置0):实际输入 = (1.0+0.10, 0.2+0.00) = <b>(1.10, 0.20)</b></span><br>
+      <span class="mono">句2(位置2):位置向量 = (0.30, 0.20) → 实际输入 = <b>(1.30, 0.40)</b></span><br>
+      同一个「猫」,两个不同的输入——回到上面的对比表,核对「加上位置编码」时那两格数字。
+      <div class="try" data-exp="0.9" data-tol="0.01" data-key="t2"><span>✍️ 轮到你:「狗」的词向量 = (0.8, 0.6),放在位置 0(位置向量 (0.10, 0.00)),实际输入的第一维 = ?</span><input type="number" step="0.01" class="t-in" placeholder="?.?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
     <span class="tag">回到大模型</span>
     <div class="backline">至此输入端闭环:<b>文字 → token 编号(第一课)→ 词向量(第二课)+ 位置向量(第三课)→ 送进 Attention(第一册第五课)</b>。第一册里"天上掉下来"的每一个数字,现在都有了产地。</div>
   </div>
@@ -319,7 +359,7 @@ for pos in range(6):
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q3" data-fbok="正确——点积和加权求和都是'一袋词'操作,必须把位置写进向量,顺序才可被计算。" data-fbbad="回看动手玩①:不加位置编码时,两句话里「猫」的输入向量一样吗?">
-      <h3>如果去掉位置编码,「我打你」和「你打我」对模型来说?</h3><button class="q-opt" data-ok="1">完全一样——Attention 本身对顺序失明</button><button class="q-opt" data-ok="0">仍然不同,因为词的先后会影响点积</button><div class="q-fb"></div>
+      <h3>如果去掉位置编码,「我打你」和「你打我」对模型来说?</h3><div><span class="q-fml">输入 = 词向量 + 位置向量(pos)</span></div><button class="q-opt" data-ok="1">完全一样——Attention 本身对顺序失明</button><button class="q-opt" data-ok="0">仍然不同,因为词的先后会影响点积</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -345,13 +385,13 @@ for pos in range(6):
   <p class="ch-lede">四题全对,输入端毕业:</p>
   <div class="w-grid">
     <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回想第一课:模型看到的是块,不是字母/汉字。">
-      <h3>① 模型经常写对成语却数错笔画,最可能的原因是?</h3><button class="q-opt" data-ok="1">成语是常见 token 整块记住了,笔画它从没"见"过</button><button class="q-opt" data-ok="0">笔画太多超出了上下文窗口</button><button class="q-opt" data-ok="0">中文语料太少</button><div class="q-fb"></div></div>
+      <h3>① 模型经常写对成语却数错笔画,最可能的原因是?</h3><div><span class="q-fml">BPE:常见组合 → 一整块 token</span></div><button class="q-opt" data-ok="1">成语是常见 token 整块记住了,笔画它从没"见"过</button><button class="q-opt" data-ok="0">笔画太多超出了上下文窗口</button><button class="q-opt" data-ok="0">中文语料太少</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="编号只是门牌;含义住在 embedding 向量里。">
-      <h3>② 词表里编号 100 和编号 101 的两个 token,含义一定相近吗?</h3><button class="q-opt" data-ok="0">一定相近,编号是按含义排的</button><button class="q-opt" data-ok="1">毫无关系——相近与否要看它们的向量,编号只是门牌</button><div class="q-fb"></div></div>
+      <h3>② 词表里编号 100 和编号 101 的两个 token,含义一定相近吗?</h3><div><span class="q-fml">x = E[编号] —— 编号只是门牌</span></div><button class="q-opt" data-ok="0">一定相近,编号是按含义排的</button><button class="q-opt" data-ok="1">毫无关系——相近与否要看它们的向量,编号只是门牌</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="E 的初始值是随机数,后来发生了什么?第一册第三课。">
-      <h3>③ 一个训练到一半的模型,它的 embedding 表 E 正在?</h3><button class="q-opt" data-ok="1">和其他参数一起被梯度下降持续更新</button><button class="q-opt" data-ok="0">保持不变,E 在训练前就定好了</button><div class="q-fb"></div></div>
+      <h3>③ 一个训练到一半的模型,它的 embedding 表 E 正在?</h3><div><span class="q-fml">w ← w − η·∇L(w),对 E 的每个数同样生效</span></div><button class="q-opt" data-ok="1">和其他参数一起被梯度下降持续更新</button><button class="q-opt" data-ok="0">保持不变,E 在训练前就定好了</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="位置编码解决的正是这个问题——回看第三课动手玩①。">
-      <h3>④ 把一句话的词随机打乱后输入(不加位置编码的)Attention,输出会?</h3><button class="q-opt" data-ok="1">完全不变——这正是需要位置编码的原因</button><button class="q-opt" data-ok="0">大变——Attention 天生对顺序敏感</button><div class="q-fb"></div></div>
+      <h3>④ 把一句话的词随机打乱后输入(不加位置编码的)Attention,输出会?</h3><div><span class="q-fml">无位置编码:Attention 只见"一袋词"</span></div><button class="q-opt" data-ok="1">完全不变——这正是需要位置编码的原因</button><button class="q-opt" data-ok="0">大变——Attention 天生对顺序敏感</button><div class="q-fb"></div></div>
   </div>
   <div class="verify" id="gradBox" data-done="🎓 毕业!输入端三块拼图齐了——你已经知道第一册那些向量的完整产地。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
 </section>
@@ -406,7 +446,36 @@ print("↑ 这些向量接下来会乘上参数矩阵得到 Q/K/V——第一册
 
 <footer>看懂大模型 · 第二册 向量从哪来 —— 所有计算都在你的浏览器里实时进行。</footer>
 </main>
-
+<button class="float-help" id="helpBtn" aria-label="打开公式与符号急救包">√?<small>公式·符号</small></button>
+<div class="help-mask" id="helpMask"></div>
+<aside class="help-panel" id="helpPanel" aria-label="公式与符号急救包">
+  <div class="hp-head"><h3>公式 · 符号急救包</h3><button class="hp-close" id="helpClose" aria-label="关闭">×</button></div>
+  <p class="small">忘了哪条规则、哪个符号,在这里查完接着学。点条目可跳回对应课复习。</p>
+  <div class="sym-group"><h4>本册速查</h4>
+    <button class="fml-row" data-go="c1"><span class="fl"><span class="fn2">① 分词 BPE</span><span class="fd">文字 → token 块</span><span class="fgo">第一课 ↗</span></span><span class="ff">统计最常相邻的一对 → 合并成新块,重复几万次</span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">② Embedding 查表</span><span class="fd">编号 → 向量</span><span class="fgo">第二课 ↗</span></span><span class="ff">x = E[编号]</span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">③ 相似度</span><span class="fd">两个向量多"合拍"</span><span class="fgo">第二课 ↗</span></span><span class="ff">cos θ = A·B / |A||B|</span></button>
+    <button class="fml-row" data-go="c3"><span class="fl"><span class="fn2">④ 位置编码</span><span class="fd">把"第几个"写进向量</span><span class="fgo">第三课 ↗</span></span><span class="ff">输入 = 词向量 + 位置向量(pos)</span></button>
+  </div>
+  <div class="sym-group"><h4>第一课 · 分词</h4>
+    <div class="sym-row"><span class="sy">token</span><span><span class="sn">块</span><br><span class="sm2">模型的最小输入单位:可以是词、半个词、几个字母。计费、上下文窗口的单位都是它。</span></span></div>
+    <div class="sym-row"><span class="sy">BPE</span><span><span class="sn">字节对编码</span><br><span class="sm2">造词表的算法:从单字符起步,反复把"最常相邻的一对"合并成新块。常见内容越合越长。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第二课 · Embedding</h4>
+    <div class="sym-row"><span class="sy">E</span><span><span class="sn">embedding 表</span><br><span class="sm2">词表有多少 token 就有多少行,每行一个向量。它是参数,被梯度下降从随机数一路调出来。</span></span></div>
+    <div class="sym-row"><span class="sy">E[i]</span><span><span class="sn">查表</span><br><span class="sm2">方括号 = "取第 i 行"。查表动作本身毫无智能,智能全在表里的数字。</span></span></div>
+    <div class="sym-row"><span class="sy">A·B</span><span><span class="sn">点积(第一册的老朋友)</span><br><span class="sm2">对应位置相乘再相加。结果越大,两个向量越"合拍"。</span></span></div>
+    <div class="sym-row"><span class="sy">|A|</span><span><span class="sn">向量长度</span><br><span class="sm2">从原点到 A 的距离,勾股定理:|(3, 4)| = √(9+16) = 5。</span></span></div>
+    <div class="sym-row"><span class="sy">cos θ</span><span><span class="sn">夹角余弦</span><br><span class="sm2">两个向量夹角的余弦:1 = 同向(意思相近),0 = 垂直(不相干),−1 = 反向。点积 ÷ 两个长度就得到它。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第三课 · 位置编码</h4>
+    <div class="sym-row"><span class="sy">pos</span><span><span class="sn">位置编号</span><br><span class="sm2">这个 token 是句子里的第几个:0, 1, 2, …</span></span></div>
+    <div class="sym-row"><span class="sy">sin / cos</span><span><span class="sn">正弦 / 余弦</span><br><span class="sm2">三角函数,输入增大时在 −1~1 之间来回摆。这里只当"匀速旋转的指针"用,不必会算。</span></span></div>
+    <div class="sym-row"><span class="sy">PE(pos)</span><span><span class="sn">位置向量</span><br><span class="sm2">位置 pos 的"指纹":一组转速不同的 sin/cos 读数。只看位置,不看词。</span></span></div>
+    <div class="sym-row"><span class="sy">d</span><span><span class="sn">维度</span><br><span class="sm2">向量里数字的个数。演示用 2~8 个,真实模型几千个。</span></span></div>
+  </div>
+  <p class="small" style="margin-top:16px">第一册的五个公式与符号,在 <a href="01-formulas.html">第一册</a> 右下角的同款浮窗里。</p>
+</aside>
 <script src="assets/common.js"></script>
 <script>
 /* ==================== 第一课 分词器 ==================== */
@@ -561,6 +630,16 @@ function peBars(){
 }
 $('#peSlider').addEventListener('input',peBars);
 peBars();
+
+/* ==================== 预测门 ==================== */
+const GATES={
+ tok:{ans:1,right:'答对了!「今天」「天气」「很好」都是常见组合,各自被合成了一整块。去把五个预设句都切一遍。',
+      wrong:'实验已解锁——亲手切一下:常见组合被当成一整块,6 个字只切出 3 个 token。再试试生僻字会怎样。'},
+ emb:{ans:1,right:'没错——意思相近的词在地图上挨着。去点「猫」和「狗」,再点「猫」和「汽车」对比余弦。',
+      wrong:'实验已解锁——点「猫↔狗」和「猫↔汽车」对比读数:近的是同类,不是"常见名词"或编号邻居。'},
+ pe:{ans:1,right:'没错——词向量只看"是什么词",不看"在第几格"。这正是大麻烦:模型分不清「猫咬狗」和「狗咬猫」。去表里亲眼确认。',
+     wrong:'直觉常这么猜——但词向量只看"是什么词",完全不携带位置。实验已解锁,去对比表里亲眼看看。'}};
+bindGates(GATES);
 </script>
 </body>
 </html>

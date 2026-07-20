@@ -30,7 +30,7 @@
 .win-chip.out{opacity:.25;border-style:dashed;text-decoration:line-through}
 </style>
 </head>
-<body data-prog-total="8">
+<body data-prog-total="10">
 <nav>
   <div class="nav-in">
     <span class="nav-brand">从接龙到助手</span>
@@ -40,7 +40,7 @@
     <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
     <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
     <a class="nav-chip" href="#c8" data-nav="c8">彩蛋</a>
-    <span class="nav-chip" id="navProg">掌握 0/8</span>
+    <span class="nav-chip" id="navProg">掌握 0/10</span>
   </div>
   <div class="series-in">
     <a class="sbook" href="index.html">📖 总目录</a>
@@ -65,9 +65,21 @@
   <p class="ch-lede">同一台机器,三段完全不同的"教育"。注意:三个阶段用的都是你在第一册学过的那套训练循环——变的只是<b>喂什么数据、奖励什么行为</b>。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>预训练结束时,问它"什么是黑洞?",它为什么可能反问你?</h3>
+    <p>它不是"不懂"。它的唯一技能是续写——训练语料里,这样的问题最常出现在试卷或论坛帖里,后面跟着的往往是<b>更多题目或评论</b>,而不是百科答案。怎样把它从接龙机器驯成助手?</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>同一个问题,问三个阶段的同一个模型</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">你猜:刚预训练完的 base 模型,被问「什么是黑洞?」时最可能?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="s3" data-i="0">给出清晰的百科式回答</button><button class="btn ghost g-opt" data-g="s3" data-i="1">像试卷一样续写下文(更多题目)</button><button class="btn ghost g-opt" data-g="s3" data-i="2">礼貌拒绝,说自己不确定</button></div>
+      <div class="gate-res" id="gres-s3">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-s3">
       <div class="stage3" id="st3Row"></div>
       <div class="chatbox">
         <div class="chat-q">🧑 什么是黑洞?</div>
@@ -89,6 +101,16 @@
       </div>
       <div class="tip">把鼠标移到三个阶段名上试试 →</div>
       <div class="fnote">数据量对比感受一下:预训练 ~ <b>数万亿</b> token;SFT ~ <b>几十万</b>条对话;RLHF ~ <b>几十万</b>次人类排序。能力的 99% 来自预训练;后两步不教新知识,只是把已有能力<b>引导成"有用的助手"这个人格</b>。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>数一数驯化链条</h3>
+    <div class="verify">
+      从接龙机器到助手,三步各干一件事:<br>
+      <span class="mono">①预训练(学语言) → ②SFT(学对话格式) → ③RLHF(学人类偏好)</span>
+      <div class="try" data-exp="3" data-tol="0.01" data-key="t0"><span>✍️ 轮到你:完整驯化要经历几个阶段?</span><input type="number" step="1" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -137,7 +159,7 @@ print("SFT 之后  :", ask(sft, ["黑洞", "是", "什么", "?"], steps=6))
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q1" data-fbok="正确——它只是忠实地续写:训练语料里,问题后面最常跟着的往往是另一个问题或评论,而不是答案。" data-fbbad="回想 base model 的唯一目标:预测下一个词。互联网文本里,问题后面通常跟着什么?">
-      <h3>base 模型被问"什么是黑洞?"时常常反问或跑题,因为?</h3><button class="q-opt" data-ok="0">它不知道黑洞是什么</button><button class="q-opt" data-ok="1">它只会续写:网上的问题后面未必跟着答案,它接的是"最像下文"的内容</button><button class="q-opt" data-ok="0">它在保护隐私</button><div class="q-fb"></div>
+      <h3>base 模型被问"什么是黑洞?"时常常反问或跑题,因为?</h3><div><span class="q-fml">预训练目标 = 预测下一个词(续写)</span></div><button class="q-opt" data-ok="0">它不知道黑洞是什么</button><button class="q-opt" data-ok="1">它只会续写:网上的问题后面未必跟着答案,它接的是"最像下文"的内容</button><button class="q-opt" data-ok="0">它在保护隐私</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -155,9 +177,21 @@ print("SFT 之后  :", ask(sft, ["黑洞", "是", "什么", "?"], steps=6))
   <p class="ch-lede">模型输出的是概率分布,不是答案。<b>温度 T</b>(第一册第一课的老朋友)决定骰子有多"偏",<b>top-p</b> 决定哪些词有资格上骰子。两个旋钮,就是 API 里那两个真实参数。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>同一台模型,为什么同一个问题问两遍答案常常不同?</h3>
+    <p>因为推理时不是"永远挑最大",而是按概率<b>掷骰子</b>。骰子的偏心程度(温度)和候选范围(top-p),决定了它是复读机还是话痨。</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>调旋钮,然后真的掷几次骰子</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">把温度从 1.0 拉到 0.1,掷骰子会怎样?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="sam" data-i="0">更随机、花样更多</button><button class="btn ghost g-opt" data-g="sam" data-i="1">几乎总出同一个最高分词</button><button class="btn ghost g-opt" data-g="sam" data-i="2">模型直接拒绝回答</button></div>
+      <div class="gate-res" id="gres-sam">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-sam">
       <div class="w-grid">
         <div>
           <div class="slider-row"><label>温度 T</label><input type="range" id="samT" min="0.1" max="5" step="0.1" value="1.0"><span class="val" id="samTv">1.0</span></div>
@@ -239,7 +273,7 @@ for T in [0.3, 1.0, 2.0]:
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q2" data-fbok="正确——T→0 时最高分词的概率被推向 100%,等价于贪心,每次输出完全一样。" data-fbbad="回想第一册第一课:T 变小,softmax 的分布变得多极端?">
-      <h3>把 temperature 设为 0(或接近 0),同一个问题问十遍会?</h3><button class="q-opt" data-ok="1">十遍答案几乎完全一样——等价于每步都挑最大概率</button><button class="q-opt" data-ok="0">答案更多样,因为模型更"冷静"</button><button class="q-opt" data-ok="0">模型拒绝回答</button><div class="q-fb"></div>
+      <h3>把 temperature 设为 0(或接近 0),同一个问题问十遍会?</h3><div><span class="q-fml">p<sub>i</sub> = e<sup>z<sub>i</sub>/T</sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub>/T</sup> · top-p 截断</span></div><button class="q-opt" data-ok="1">十遍答案几乎完全一样——等价于每步都挑最大概率</button><button class="q-opt" data-ok="0">答案更多样,因为模型更"冷静"</button><button class="q-opt" data-ok="0">模型拒绝回答</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -257,9 +291,21 @@ for T in [0.3, 1.0, 2.0]:
   <p class="ch-lede">两件事决定了聊天体验的"物理规律":<b>KV 缓存</b>让逐词生成快得起来,<b>上下文窗口</b>决定模型最多能"看见"多少字。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>生成第 1000 个词时,Attention 要面对前面 999 个词——计算量怎么不爆炸?</h3>
+    <p>每个词的 K 和 V 算好之后永远不变(第一册第五课)。那就<b>存起来</b>——新词只需算自己的一行,再和缓存里的所有 K 做点积。同时:窗口装满之后,最早的话会怎样?</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩 ①</span>
     <h3>不缓存 vs 缓存:拖动"已生成的词数",看计算量差多少</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">窗口装满之后,最早说的那句话会?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="kv" data-i="0">被压缩进模型参数里永久记住</button><button class="btn ghost g-opt" data-g="kv" data-i="1">被挤出窗外——输入里没有,等于不存在</button><button class="btn ghost g-opt" data-g="kv" data-i="2">自动存进服务器硬盘</button></div>
+      <div class="gate-res" id="gres-kv">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-kv">
       <div class="slider-row" style="max-width:460px"><label>已生成 n 词</label><input type="range" id="kvN" min="10" max="500" step="10" value="100"><span class="val" id="kvNv">100</span></div>
       <div class="kv-row"><span class="kl">🐌 每词重算全部前文</span><div class="bar-track"><div class="bar-fill" id="kvB1" style="background:#D1495B"></div></div><span class="kv-n" id="kvV1"></span></div>
       <div class="kv-row"><span class="kl">⚡ 缓存每个词的 K/V</span><div class="bar-track"><div class="bar-fill" id="kvB2"></div></div><span class="kv-n" id="kvV2"></span></div>
@@ -276,6 +322,28 @@ for T in [0.3, 1.0, 2.0]:
       <div class="slider-row" style="max-width:460px"><label>对话进度</label><input type="range" id="winN" min="6" max="14" step="1" value="6"><span class="val" id="winNv">6</span></div>
       <div class="win-chips" id="winChips"></div>
       <div class="gd-msg" id="winMsg"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">公 式</span>
+    <h3>缓存省下的量,一句话</h3>
+    <div class="fbox">
+      <div class="formula" style="font-size:clamp(1.02rem,2.5vw,1.35rem);font-family:var(--sans)">
+        有缓存:生成 n 词的点积总量 ≈ <span class="term" data-g="kv-sum" data-tip="<b>1+2+…+n</b>:第 t 步只和新词做 t 次点积(老词的 K/V 已在缓存里)">1+2+…+n</span> = n(n+1)/2
+      </div>
+      <div class="tip">把鼠标移到公式上试试 →</div>
+      <div class="fnote">不缓存时每步还要重算全部历史的 K/V,总量再乘一个随深度增长的系数——差出几个数量级。窗口大小则是另一条硬限制:超出的内容物理上不在输入里。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>口算一次缓存总量</h3>
+    <div class="verify">
+      有缓存时,生成 4 个词的点积次数 = 1+2+3+4:<br>
+      <span class="mono">1+2+3+4 = <b>10</b></span> —— 也等于 4×5/2。
+      <div class="try" data-exp="15" data-tol="0.01" data-key="t2"><span>✍️ 轮到你:生成 5 个词,有缓存时总点积次数 = 1+2+3+4+5 = ?</span><input type="number" step="1" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -303,7 +371,7 @@ for n in [10, 100, 1000, 10000]:
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q3" data-fbok="正确——不在窗口里的内容对模型等于不存在,它每次都只读'眼前这一屏'。" data-fbbad="回看动手玩②:被挤出窗口的消息去哪了?">
-      <h3>聊了三小时后模型"忘了"你最开始说的话,根本原因是?</h3><button class="q-opt" data-ok="0">模型的参数把它遗忘了</button><button class="q-opt" data-ok="1">开头的内容已不在上下文窗口内——输入里没有,等于不存在</button><button class="q-opt" data-ok="0">KV 缓存溢出导致数据损坏</button><div class="q-fb"></div>
+      <h3>聊了三小时后模型"忘了"你最开始说的话,根本原因是?</h3><div><span class="q-fml">上下文窗口 = 模型一次能看见的 token 上限</span></div><button class="q-opt" data-ok="0">模型的参数把它遗忘了</button><button class="q-opt" data-ok="1">开头的内容已不在上下文窗口内——输入里没有,等于不存在</button><button class="q-opt" data-ok="0">KV 缓存溢出导致数据损坏</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -327,13 +395,13 @@ for n in [10, 100, 1000, 10000]:
   <p class="ch-lede">四题全对,助手学毕业:</p>
   <div class="w-grid">
     <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="预训练教知识,SFT 教格式,RLHF 教偏好——礼貌拒绝是哪种?">
-      <h3>① 模型礼貌地拒绝写钓鱼邮件,这个行为主要来自?</h3><button class="q-opt" data-ok="0">预训练语料里没有钓鱼邮件</button><button class="q-opt" data-ok="1">RLHF:人类反馈把"拒绝有害请求"训成了高奖励行为</button><button class="q-opt" data-ok="0">分词器过滤了敏感词</button><div class="q-fb"></div></div>
+      <h3>① 模型礼貌地拒绝写钓鱼邮件,这个行为主要来自?</h3><div><span class="q-fml">RLHF:人类偏好 → 奖励信号</span></div><button class="q-opt" data-ok="0">预训练语料里没有钓鱼邮件</button><button class="q-opt" data-ok="1">RLHF:人类反馈把"拒绝有害请求"训成了高奖励行为</button><button class="q-opt" data-ok="0">分词器过滤了敏感词</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="写代码要的是确定和精准——骰子该偏还是该平?">
-      <h3>② 让模型帮你生成严格的 JSON 配置,应该?</h3><button class="q-opt" data-ok="1">调低 temperature(甚至 0)——要确定性,不要创意</button><button class="q-opt" data-ok="0">调高 temperature——让它多想几种可能</button><div class="q-fb"></div></div>
+      <h3>② 让模型帮你生成严格的 JSON 配置,应该?</h3><div><span class="q-fml">T → 0 ≈ 每步挑最大概率</span></div><button class="q-opt" data-ok="1">调低 temperature(甚至 0)——要确定性,不要创意</button><button class="q-opt" data-ok="0">调高 temperature——让它多想几种可能</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="推理时参数更新吗?总装最后一行。">
-      <h3>③ 你在对话里纠正了模型一个错误,明天新开对话它还会犯,因为?</h3><button class="q-opt" data-ok="1">推理不更新参数——你的纠正只活在那个窗口里</button><button class="q-opt" data-ok="0">模型故意不听</button><button class="q-opt" data-ok="0">纠正被 top-p 截断了</button><div class="q-fb"></div></div>
+      <h3>③ 你在对话里纠正了模型一个错误,明天新开对话它还会犯,因为?</h3><div><span class="q-fml">推理不更新参数;窗口外 = 不存在</span></div><button class="q-opt" data-ok="1">推理不更新参数——你的纠正只活在那个窗口里</button><button class="q-opt" data-ok="0">模型故意不听</button><button class="q-opt" data-ok="0">纠正被 top-p 截断了</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="KV 缓存存的是每个前文词的 K/V,窗口越长缓存越大。">
-      <h3>④ 长上下文(如 128k)服务更贵,直接的工程原因是?</h3><button class="q-opt" data-ok="0">长文本要用更大的模型</button><button class="q-opt" data-ok="1">窗口越长,KV 缓存占的显存和每步点积越多</button><div class="q-fb"></div></div>
+      <h3>④ 长上下文(如 128k)服务更贵,直接的工程原因是?</h3><div><span class="q-fml">KV 缓存占显存 ∝ 窗口长度</span></div><button class="q-opt" data-ok="0">长文本要用更大的模型</button><button class="q-opt" data-ok="1">窗口越长,KV 缓存占的显存和每步点积越多</button><div class="q-fb"></div></div>
   </div>
   <div class="verify" id="gradBox" data-done="🎓 毕业!从驯化到掷骰子到窗口——ChatGPT 在你眼里已经没有魔法,只有机制。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
 </section>
@@ -405,7 +473,31 @@ for T in [0.2, 1.0, 3.0]:
 
 <footer>看懂大模型 · 第四册 从接龙到助手 —— 所有计算都在你的浏览器里实时进行。</footer>
 </main>
-
+<button class="float-help" id="helpBtn" aria-label="打开公式与符号急救包">√?<small>公式·符号</small></button>
+<div class="help-mask" id="helpMask"></div>
+<aside class="help-panel" id="helpPanel" aria-label="公式与符号急救包">
+  <div class="hp-head"><h3>公式 · 符号急救包</h3><button class="hp-close" id="helpClose" aria-label="关闭">×</button></div>
+  <p class="small">忘了哪条规则、哪个符号,在这里查完接着学。点条目可跳回对应课复习。</p>
+  <div class="sym-group"><h4>本册速查</h4>
+    <button class="fml-row" data-go="c1"><span class="fl"><span class="fn2">① 三阶段驯化</span><span class="fd">接龙 → 助手</span><span class="fgo">第一课 ↗</span></span><span class="ff">预训练 → SFT → RLHF</span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">② 采样</span><span class="fd">从概率里掷骰子</span><span class="fgo">第二课 ↗</span></span><span class="ff">温度 T + top-p 截断</span></button>
+    <button class="fml-row" data-go="c3"><span class="fl"><span class="fn2">③ 上下文与缓存</span><span class="fd">看见多少 / 算多快</span><span class="fgo">第三课 ↗</span></span><span class="ff">窗口上限 · KV 缓存 ≈ n(n+1)/2</span></button>
+  </div>
+  <div class="sym-group"><h4>第一课 · 驯化</h4>
+    <div class="sym-row"><span class="sy">base</span><span><span class="sn">预训练后的基座模型</span><br><span class="sm2">只会续写的接龙机器。懂语言、懂世界,但没有"回答问题"这个习惯。</span></span></div>
+    <div class="sym-row"><span class="sy">SFT</span><span><span class="sn">监督微调</span><br><span class="sm2">Supervised Fine-Tuning:在人写的「问题→优质回答」上继续训练,学会对话格式。</span></span></div>
+    <div class="sym-row"><span class="sy">RLHF</span><span><span class="sn">人类反馈强化学习</span><br><span class="sm2">人类给回答排序,训一个奖励模型,再用它当罚分继续调——学会人类偏好。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第二课 · 采样</h4>
+    <div class="sym-row"><span class="sy">T</span><span><span class="sn">温度</span><br><span class="sm2">分数先 ÷T 再 softmax。T→0 几乎只出最高分;T 大则分布被抹平、更随机。</span></span></div>
+    <div class="sym-row"><span class="sy">top-p</span><span><span class="sn">核采样</span><br><span class="sm2">概率从大到小累加,刚超过 p 就截断——只留合计约 p 概率质量的候选再掷骰子。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第三课 · 窗口与缓存</h4>
+    <div class="sym-row"><span class="sy">KV</span><span><span class="sn">键 / 值缓存</span><br><span class="sm2">每个前文词的 K 和 V 算一次存起来。新词只算自己的一行,再和缓存点积。</span></span></div>
+    <div class="sym-row"><span class="sy">窗口</span><span><span class="sn">上下文窗口</span><br><span class="sm2">一次请求里模型能看见的 token 上限。超出的最早内容被挤出,等于不存在。</span></span></div>
+  </div>
+  <p class="small" style="margin-top:16px">前三册的公式与符号,在各自右下角的同款浮窗里(<a href="01-formulas.html">第一册</a> · <a href="02-tokens.html">第二册</a> · <a href="03-transformer.html">第三册</a>)。</p>
+</aside>
 <script src="assets/common.js"></script>
 <script>
 /* ==================== 第一课 三阶段 ==================== */
@@ -501,6 +593,16 @@ function winRender(){
 }
 $('#winN').addEventListener('input',winRender);
 winRender();
+
+/* ==================== 预测门 ==================== */
+const GATES={
+ s3:{ans:1,right:'答对了——它在忠实续写试卷式下文。去点三个阶段卡片对比同一问的三种接法。',
+     wrong:'实验已解锁——点开「阶段①预训练」:它接的是更多考题,不是百科答案。'},
+ sam:{ans:1,right:'没错——低温把分布推向极端,几乎只出最高分词。去把 T 拉到 0.1 再掷几次。',
+      wrong:'实验已解锁——把温度拉到 0.1,连掷 12 次,看是不是几乎全是同一个词。'},
+ kv:{ans:1,right:'正确——被挤出窗口的内容物理上不在输入里。去动手玩②拖进度条亲眼看消息变灰。',
+     wrong:'实验已解锁——拖动手玩②的进度条:最早的消息会划掉,模型眼前只剩窗口内那几条。'}};
+bindGates(GATES);
 </script>
 </body>
 </html>

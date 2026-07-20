@@ -21,7 +21,7 @@
 .cf-grad b{color:var(--red)}
 </style>
 </head>
-<body data-prog-total="9">
+<body data-prog-total="12">
 <nav>
   <div class="nav-in">
     <span class="nav-brand">拆开整机</span>
@@ -32,7 +32,7 @@
     <a class="nav-chip" href="#c6" data-nav="c6">总装</a>
     <a class="nav-chip" href="#c7" data-nav="c7">毕业测验</a>
     <a class="nav-chip" href="#c8" data-nav="c8">终极彩蛋 2.0</a>
-    <span class="nav-chip" id="navProg">掌握 0/9</span>
+    <span class="nav-chip" id="navProg">掌握 0/12</span>
   </div>
   <div class="series-in">
     <a class="sbook" href="index.html">📖 总目录</a>
@@ -65,7 +65,13 @@
   <div class="stage">
     <span class="tag">动手玩</span>
     <h3>同一个「它」,两个头看到的世界完全不同</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">同一个「它」,两个头的注意力分布会怎样?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="mh" data-i="0">几乎一样——反正都在看「它」</button><button class="btn ghost g-opt" data-g="mh" data-i="1">可以完全不同——各盯各的关系</button><button class="btn ghost g-opt" data-g="mh" data-i="2">一个有分布,另一个必须全零</button></div>
+      <div class="gate-res" id="gres-mh">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-mh">
       <div class="btn-row" style="margin-top:0">
         <button class="btn" data-head="A" id="hbA">头 A</button>
         <button class="btn ghost" data-head="B" id="hbB">头 B</button>
@@ -85,6 +91,16 @@
       </div>
       <div class="tip" id="mhTip">把鼠标移到公式的某一项上试试 →</div>
       <div class="fnote">每个 <code class="mi">head<sub>i</sub> = Attention(XW<sub>i</sub><sup>Q</sup>, XW<sub>i</sub><sup>K</sup>, XW<sub>i</sub><sup>V</sup>)</code>——第一册第五课那行公式,一个字没变。"多头"没有新数学,只有<b>分工</b>。GPT-3 每层 96 个头,每个头各管一摊。</div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>核对:每个头的权重各自加起来都是 1</h3>
+    <div class="verify">
+      头 A 的注意力:0.52、0.04、0.16、0.05、0.08、0.11、0.04:<br>
+      <span class="mono">0.52+0.04+0.16+0.05+0.08+0.11+0.04 = <b>1.00</b></span> —— 一套权重是稀缺资源,总和固定 100%。
+      <div class="try" data-exp="1" data-tol="0.01" data-key="t0"><span>✍️ 轮到你:头 B 权重 0.02、0.02、0.06、0.38、0.10、0.30、0.12,加起来 = ?</span><input type="number" step="0.01" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -120,7 +136,7 @@ for name, K in [("头A(指代)", K_headA), ("头B(语境)", K_headB)]:
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q1" data-fbok="正确——一套权重和为 100%,注意力是稀缺资源;多头让不同关系各占一双眼睛。" data-fbbad="回看动手玩:头A 和头B 的权重各自加起来都是 100%,它们互相挤占吗?">
-      <h3>为什么要多个头,而不是把一个头做大?</h3><button class="q-opt" data-ok="0">多个头算得更快</button><button class="q-opt" data-ok="1">一套注意力权重总和只有 100%,盯了指代就顾不上语境;多头让多种关系并行各看各的</button><div class="q-fb"></div>
+      <h3>为什么要多个头,而不是把一个头做大?</h3><div><span class="q-fml">MultiHead = 拼接(head<sub>1</sub>, …, head<sub>h</sub>)·W<sup>O</sup></span></div><button class="q-opt" data-ok="0">多个头算得更快</button><button class="q-opt" data-ok="1">一套注意力权重总和只有 100%,盯了指代就顾不上语境;多头让多种关系并行各看各的</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -192,6 +208,7 @@ for name, K in [("头A(指代)", K_headA), ("头B(语境)", K_headB)]:
       神经元1 = ReLU(2 − 1) = 1,神经元2 = ReLU(2 − 3) = ReLU(−1) = 0:<br>
       <span class="mono">y = 1 − 2×0 = <b>1.0</b></span> —— 把上面滑块拖到 2.0 核对。<br>
       再试 x=4:神经元1 = 3,神经元2 = 1,y = 3 − 2 = 1 —— 上山又下山,这就是"拐弯"。
+      <div class="try" data-exp="0" data-tol="0.01" data-key="t2"><span>✍️ 轮到你:x = 5 时,神经元1 = ReLU(4)、神经元2 = ReLU(2),y = ?</span><input type="number" step="0.01" class="t-in" placeholder="?"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
     </div>
   </div>
 
@@ -223,7 +240,7 @@ for x in [0, 1, 2, 3, 4, 5]:
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q2" data-fbok="正确——直线套直线还是直线;掰弯器是深度的前提。" data-fbbad="试试代码里 bend=False 的那列:两层线性变换合并后等于什么?">
-      <h3>把 100 层网络里的激活函数(掰弯器)全部去掉,这个网络等价于?</h3><button class="q-opt" data-ok="0">100 层直线网络,依然很强</button><button class="q-opt" data-ok="1">一层线性变换——直线套直线还是直线,深度全部作废</button><div class="q-fb"></div>
+      <h3>把 100 层网络里的激活函数(掰弯器)全部去掉,这个网络等价于?</h3><div><span class="q-fml">FFN(h) = W<sub>2</sub>·ReLU(W<sub>1</sub>·h)</span></div><button class="q-opt" data-ok="0">100 层直线网络,依然很强</button><button class="q-opt" data-ok="1">一层线性变换——直线套直线还是直线,深度全部作废</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -241,9 +258,21 @@ for x in [0, 1, 2, 3, 4, 5]:
   <p class="ch-lede">解决方案是一个加号:每层的输出不是 F(x),而是 <b>x + F(x)</b>——把输入原封不动抄一份加回来。层只需要学"该修改什么"(残差),不必学"如何复述一切"。</p>
 
   <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>一层好用,那就摞 96 层——为什么楼会塌?</h3>
+    <p>每层都对信号做一次变换。哪怕每次只轻微缩小一点(×0.9),几十层连乘下来信号也会衰减到接近消失;反过来轻微放大就会爆炸。更糟的是,训练信号(梯度)反向穿楼时同样逐层打折——先亲眼看看这栋楼塌得有多快:</p>
+  </div>
+
+  <div class="stage">
     <span class="tag">动手玩</span>
     <h3>拖层数,看信号在两种楼里的命运</h3>
-    <div class="widget">
+    <div class="gate">
+      <h4>🔮 先下注,再解锁实验</h4>
+      <p class="small">没有残差时,每层信号 ×0.9。拖到 40 层,信号大约还剩?</p>
+      <div class="btn-row"><button class="btn ghost g-opt" data-g="res" data-i="0">约 90%(几乎无损)</button><button class="btn ghost g-opt" data-g="res" data-i="1">约 50%</button><button class="btn ghost g-opt" data-g="res" data-i="2">约 1.5%(几乎没了)</button></div>
+      <div class="gate-res" id="gres-res">选一个答案,下面的实验才会解锁。</div>
+    </div>
+    <div class="widget locked" id="lab-res">
       <div class="slider-row" style="max-width:440px"><label>层数 N</label><input type="range" id="resN" min="1" max="40" step="1" value="4"><span class="val" id="resNv">4</span></div>
       <div class="res-wrap">
         <div class="res-box">
@@ -274,6 +303,16 @@ for x in [0, 1, 2, 3, 4, 5]:
   </div>
 
   <div class="stage">
+    <span class="tag">手算验证</span>
+    <h3>口算两层衰减</h3>
+    <div class="verify">
+      没有残差时,每层 ×0.9。过 2 层:<br>
+      <span class="mono">0.9 × 0.9 = <b>0.81</b></span> —— 只过两层就掉了近两成;拖滑块到 40 看指数崩塌。
+      <div class="try" data-exp="0.729" data-tol="0.01" data-key="t3"><span>✍️ 轮到你:过 3 层还剩? 0.9×0.9×0.9 = ?</span><input type="number" step="0.001" class="t-in" placeholder="0.???"><button class="btn ghost t-btn">检查</button><span class="t-fb"></span></div>
+    </div>
+  </div>
+
+  <div class="stage">
     <span class="tag">回到大模型</span>
     <div class="backline">现在一层 Transformer 的完整配方齐了:<span class="mono">x → LayerNorm → 多头Attention → +x → LayerNorm → FFN → +x</span>。GPT-3 把它复制 96 份摞起来。<b>整栋楼里没有任何你不认识的零件。</b></div>
   </div>
@@ -300,7 +339,7 @@ print(f"有残差,40 层后:信号 = {x:.4f}   (被逐层雕琢,但从未断路)
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q3" data-fbok="正确——加号那条支路让信息与梯度都能无损穿越任意深度。" data-fbbad="回看实验:0.9 的 40 次方剩多少?残差那栏为什么不掉?">
-      <h3>残差连接 x + F(x) 解决的核心问题是?</h3><button class="q-opt" data-ok="0">让模型参数变少,省显存</button><button class="q-opt" data-ok="1">给信号和梯度一条直通道,让几十上百层深的网络仍然训得动</button><button class="q-opt" data-ok="0">让每层的计算可以并行</button><div class="q-fb"></div>
+      <h3>残差连接 x + F(x) 解决的核心问题是?</h3><div><span class="q-fml">输出 = LayerNorm(x + F(x))</span></div><button class="q-opt" data-ok="0">让模型参数变少,省显存</button><button class="q-opt" data-ok="1">给信号和梯度一条直通道,让几十上百层深的网络仍然训得动</button><button class="q-opt" data-ok="0">让每层的计算可以并行</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -316,6 +355,12 @@ print(f"有残差,40 层后:信号 = {x:.4f}   (被逐层雕琢,但从未断路)
 <section class="chapter" id="c4">
   <div class="ch-head"><span class="ch-no">第四课</span><h2>反向传播:坡度沿着链条往回乘</h2><span class="en">backpropagation</span></div>
   <p class="ch-lede">核心只有一条小学奥数式的规则——<b>链式法则</b>:A 影响 B、B 影响 L,那么"A 对 L 的影响" = 两段影响相乘。网络再深,也只是把沿路的"局部坡度"一路乘回去。</p>
+
+  <div class="stage">
+    <span class="tag">问 题</span>
+    <h3>几百亿个参数,每个都要一份自己的坡度——挨个"挪一挪试试"要试到什么时候?</h3>
+    <p>最笨的办法:把某个参数挪动一点点,重跑一遍整个模型,看罚分动了多少。可这样每个参数都要一次完整前向——几百亿个参数就是几百亿次前向。需要一个"跑一个来回,人人拿到坡度"的算法。先在一条四节小链上看清它:</p>
+  </div>
 
   <div class="stage">
     <span class="tag">动手玩</span>
@@ -387,7 +432,7 @@ print("挪一挪量出来的      =", round((Lp - Lm) / (2*eps), 6), "  ← 分�
 
   <div class="stage"><span class="tag">过关检查</span>
     <div class="quiz" data-key="q4" data-fbok="正确——一次反向扫描,所有参数同时拿到梯度,代价只相当于再跑一次前向。" data-fbbad="想想'挨个挪一挪'需要几次前向?反向传播需要几次?">
-      <h3>反向传播之于"给几百亿参数求梯度",本质上是?</h3><button class="q-opt" data-ok="0">一种近似:牺牲精度换速度</button><button class="q-opt" data-ok="1">链式法则的高效执行:一次反向扫描,人人拿到精确梯度</button><button class="q-opt" data-ok="0">对每个参数分别挪一挪再测量</button><div class="q-fb"></div>
+      <h3>反向传播之于"给几百亿参数求梯度",本质上是?</h3><div><span class="q-fml">dL/dw<sub>1</sub> = dL/dŷ · dŷ/dh · dh/da · da/dw<sub>1</sub></span></div><button class="q-opt" data-ok="0">一种近似:牺牲精度换速度</button><button class="q-opt" data-ok="1">链式法则的高效执行:一次反向扫描,人人拿到精确梯度</button><button class="q-opt" data-ok="0">对每个参数分别挪一挪再测量</button><div class="q-fb"></div>
     </div>
   </div>
 </section>
@@ -410,13 +455,13 @@ print("挪一挪量出来的      =", round((Lp - Lm) / (2*eps), 6), "  ← 分�
   <p class="ch-lede">四题全对,整机毕业:</p>
   <div class="w-grid">
     <div class="quiz" data-key="g1" data-grad="1" data-fbok="正确。" data-fbbad="回想第一课:每个头有自己的一套 W_Q/W_K/W_V。">
-      <h3>① 解剖发现某个头专盯"上一个词"。这种分工是谁设计的?</h3><button class="q-opt" data-ok="0">工程师为每个头写了规则</button><button class="q-opt" data-ok="1">没人设计——各头参数不同,训练中自发分化出分工</button><div class="q-fb"></div></div>
+      <h3>① 解剖发现某个头专盯"上一个词"。这种分工是谁设计的?</h3><div><span class="q-fml">head<sub>i</sub> = Attention(XW<sub>i</sub><sup>Q</sup>, XW<sub>i</sub><sup>K</sup>, XW<sub>i</sub><sup>V</sup>)</span></div><button class="q-opt" data-ok="0">工程师为每个头写了规则</button><button class="q-opt" data-ok="1">没人设计——各头参数不同,训练中自发分化出分工</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g2" data-grad="1" data-fbok="正确。" data-fbbad="Attention 的输出只是 V 的加权平均——它搬运,不加工。">
-      <h3>② "法国的首都是巴黎"这类事实,普遍认为主要存在哪里?</h3><button class="q-opt" data-ok="0">Attention 的注意力权重里</button><button class="q-opt" data-ok="1">FFN(前馈网络)的参数里——它占每层约 2/3 的参数</button><button class="q-opt" data-ok="0">位置编码里</button><div class="q-fb"></div></div>
+      <h3>② "法国的首都是巴黎"这类事实,普遍认为主要存在哪里?</h3><div><span class="q-fml">FFN(h) = W<sub>2</sub>·ReLU(W<sub>1</sub>·h) —— 占每层约 2/3 参数</span></div><button class="q-opt" data-ok="0">Attention 的注意力权重里</button><button class="q-opt" data-ok="1">FFN(前馈网络)的参数里——它占每层约 2/3 的参数</button><button class="q-opt" data-ok="0">位置编码里</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g3" data-grad="1" data-fbok="正确。" data-fbbad="回看第三课:梯度沿哪条路才能活着传到第 1 层?">
-      <h3>③ 把一个 96 层模型的所有残差连接删掉再训练,最可能发生?</h3><button class="q-opt" data-ok="1">梯度传不到底层,训练失败或极其缓慢</button><button class="q-opt" data-ok="0">没影响,残差只是省内存的技巧</button><div class="q-fb"></div></div>
+      <h3>③ 把一个 96 层模型的所有残差连接删掉再训练,最可能发生?</h3><div><span class="q-fml">输出 = LayerNorm(x + F(x))</span></div><button class="q-opt" data-ok="1">梯度传不到底层,训练失败或极其缓慢</button><button class="q-opt" data-ok="0">没影响,残差只是省内存的技巧</button><div class="q-fb"></div></div>
     <div class="quiz" data-key="g4" data-grad="1" data-fbok="正确。" data-fbbad="链条上每一节都要乘:tanh 那节的局部坡度是 1−h²,h 饱和时它趋近 0。">
-      <h3>④ 链条中某节"掰弯器"进入饱和区(局部坡度≈0),它上游参数的梯度会?</h3><button class="q-opt" data-ok="1">≈0——连乘里有个零,整条链的梯度都被掐断</button><button class="q-opt" data-ok="0">不受影响,各节坡度互相独立</button><div class="q-fb"></div></div>
+      <h3>④ 链条中某节"掰弯器"进入饱和区(局部坡度≈0),它上游参数的梯度会?</h3><div><span class="q-fml">链式法则:梯度 = 沿路坡度的连乘</span></div><button class="q-opt" data-ok="1">≈0——连乘里有个零,整条链的梯度都被掐断</button><button class="q-opt" data-ok="0">不受影响,各节坡度互相独立</button><div class="q-fb"></div></div>
   </div>
   <div class="verify" id="gradBox" data-done="🎓 毕业!整机的每个零件——搬运、加工、直通道、回传——你都能说清它为什么存在了。" style="margin-top:16px">毕业进度:<b id="gradScore">0 / 4</b> —— <span id="gradMsg">别急,可以随时回各课复习再来。</span></div>
 </section>
@@ -489,7 +534,37 @@ print("模型接龙:", " ".join(sent))</pre>
 
 <footer>看懂大模型 · 第三册 拆开整机 —— 所有计算都在你的浏览器里实时进行。</footer>
 </main>
-
+<button class="float-help" id="helpBtn" aria-label="打开公式与符号急救包">√?<small>公式·符号</small></button>
+<div class="help-mask" id="helpMask"></div>
+<aside class="help-panel" id="helpPanel" aria-label="公式与符号急救包">
+  <div class="hp-head"><h3>公式 · 符号急救包</h3><button class="hp-close" id="helpClose" aria-label="关闭">×</button></div>
+  <p class="small">忘了哪条公式、哪个符号,在这里查完接着学。点公式可跳回对应课复习。</p>
+  <div class="sym-group"><h4>本册速查</h4>
+    <button class="fml-row" data-go="c1"><span class="fl"><span class="fn2">① 多头注意力</span><span class="fd">多双眼睛,各看各的</span><span class="fgo">第一课 ↗</span></span><span class="ff">MultiHead = 拼接(head<sub>1</sub>, …, head<sub>h</sub>)·W<sup>O</sup></span></button>
+    <button class="fml-row" data-go="c2"><span class="fl"><span class="fn2">② 前馈网络 FFN</span><span class="fd">放大 → 掰弯 → 压回</span><span class="fgo">第二课 ↗</span></span><span class="ff">FFN(h) = W<sub>2</sub>·ReLU(W<sub>1</sub>·h)</span></button>
+    <button class="fml-row" data-go="c3"><span class="fl"><span class="fn2">③ 残差 + LayerNorm</span><span class="fd">深楼不塌的加号</span><span class="fgo">第三课 ↗</span></span><span class="ff">输出 = LayerNorm(x + F(x))</span></button>
+    <button class="fml-row" data-go="c4"><span class="fl"><span class="fn2">④ 反向传播</span><span class="fd">坡度沿链条回乘</span><span class="fgo">第四课 ↗</span></span><span class="ff">dL/dw<sub>1</sub> = dL/dŷ · dŷ/dh · dh/da · da/dw<sub>1</sub></span></button>
+  </div>
+  <div class="sym-group"><h4>第一课 · 多头</h4>
+    <div class="sym-row"><span class="sy">head<sub>i</sub></span><span><span class="sn">第 i 个头</span><br><span class="sm2">一次完整的 Attention(Q,K,V),用自己那套参数矩阵生成 Q/K/V——所以"看点"不同。</span></span></div>
+    <div class="sym-row"><span class="sy">W<sup>O</sup></span><span><span class="sn">输出矩阵</span><br><span class="sm2">把各头拼接的结果重新混合、压回原尺寸。上标 O = output,只是名字。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第二课 · FFN</h4>
+    <div class="sym-row"><span class="sy">W<sub>1</sub>, W<sub>2</sub></span><span><span class="sn">放大 / 压回矩阵</span><br><span class="sm2">两张参数表:先把向量投进宽 4 倍的空间,掰弯后再压回原尺寸。下标只是编号。</span></span></div>
+    <div class="sym-row"><span class="sy">ReLU</span><span><span class="sn">掰弯器(激活函数)</span><br><span class="sm2">ReLU(x) = max(0, x):负数归零,正数原样通过。给直线制造拐点的零件。</span></span></div>
+    <div class="sym-row"><span class="sy">tanh</span><span><span class="sn">另一种掰弯器</span><br><span class="sm2">把任何数压到 −1~1 之间的 S 形曲线。第四课和彩蛋里用它。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第三课 · 残差</h4>
+    <div class="sym-row"><span class="sy">F(x)</span><span><span class="sn">这一层的修改量</span><br><span class="sm2">层真正算出来的东西(Attention 或 FFN 的输出)。加回 x 后,层学的只是"该改什么"。</span></span></div>
+    <div class="sym-row"><span class="sy">LayerNorm</span><span><span class="sn">整队</span><br><span class="sm2">把向量数值拉回标准范围(均值 0、方差 1),防止逐层越走越飘。</span></span></div>
+  </div>
+  <div class="sym-group"><h4>第四课 · 反向传播</h4>
+    <div class="sym-row"><span class="sy">dL/dw</span><span><span class="sn">导数(坡度)</span><br><span class="sm2">读作"L 对 w 的坡度":w 挪一小步,L 跟着动多少。第一册的 ∇L 就是它,换了身写法。</span></span></div>
+    <div class="sym-row"><span class="sy">ŷ</span><span><span class="sn">y 戴帽子(预测值)</span><br><span class="sm2">模型的预测输出;不戴帽子的 y 是真实答案。帽子读作 hat。</span></span></div>
+    <div class="sym-row"><span class="sy">ε</span><span><span class="sn">艾普西隆(极小量)</span><br><span class="sm2">一个非常小的数(如 0.000001),数值验证时用来"真的挪一挪"。</span></span></div>
+  </div>
+  <p class="small" style="margin-top:16px">第一册的五个公式与符号,在 <a href="01-formulas.html">第一册</a> 右下角的同款浮窗里。</p>
+</aside>
 <script src="assets/common.js"></script>
 <script>
 /* ==================== 第一课 多头 ==================== */
@@ -627,8 +702,12 @@ bpRender();
 
 /* ==================== 预测门 ==================== */
 const GATES={
+ mh:{ans:1,right:'答对了——每个头有自己的一套参数,看点可以完全不同。去切换头 A / 头 B 亲眼对比。',
+     wrong:'实验已解锁——点开头 A 和头 B:同一个「它」,一个盯「小猫」,一个盯「因为…饿」。'},
  ffn:{ans:1,right:'答对了。两段线性变换套在一起,合并同类项后仍是一条直线——去掉掰弯器,深度作废。去实验里按下那个开关。',
-      wrong:'实验已解锁——按"去掉 ReLU"开关亲眼看看:线性套线性,还是线性。'}};
+      wrong:'实验已解锁——按"去掉 ReLU"开关亲眼看看:线性套线性,还是线性。'},
+ res:{ans:2,right:'没错——0.9⁴⁰ ≈ 0.015。去拖滑块亲眼看左栏崩塌、右栏安然。',
+      wrong:'实验已解锁——把层数拖到 40:左栏只剩约 1.5%,右栏仍是 100%。'}};
 bindGates(GATES);
 </script>
 </body>
