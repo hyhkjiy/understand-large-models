@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1240" viewBox="0 0 900 1240" role="img" aria-labelledby="diagram-title diagram-description">
+  <title id="diagram-title">GPT 风格 Transformer：Decoder-only · Pre-LN</title>
+  <desc id="diagram-description">自下而上的 GPT 解码器架构。输入文本经分词、词元嵌入，并与位置嵌入相加。重复 N 次的 Transformer 块依次执行层归一化、带因果掩码的自注意力、残差相加、层归一化、前馈网络和残差相加。两条右侧残差路径分别从对应层归一化之前分支，绕过归一化和子层，接入对应加法节点。最后经层归一化、线性投影和 Softmax，得到下一词元概率。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#202020"/>
+    </marker>
+    <style>
+      text { font-family: "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", Arial, sans-serif; fill: #202020; }
+      .heading { font-size: 31px; font-weight: 650; }
+      .subtitle { font-size: 19px; fill: #666; }
+      .zh { font-size: 19px; font-weight: 550; }
+      .en { font-size: 14px; fill: #555; }
+      .note { font-size: 16px; fill: #555; }
+      .block { stroke: #292929; stroke-width: 1.4; rx: 7; }
+      .norm { fill: #fce4d6; }
+      .attention { fill: #fff2c4; }
+      .ffn { fill: #eae2f7; }
+      .neutral { fill: #f7f7f7; }
+      .flow { fill: none; stroke: #202020; stroke-width: 1.5; marker-end: url(#arrow); stroke-linejoin: round; }
+      .junction { fill: #202020; }
+      .add { fill: white; stroke: #202020; stroke-width: 1.5; }
+    </style>
+  </defs>
+
+  <rect width="900" height="1240" fill="white"/>
+  <text x="450" y="42" text-anchor="middle" class="heading">GPT 风格 Transformer</text>
+  <text x="450" y="75" text-anchor="middle" class="subtitle">Decoder-only · Pre-LN</text>
+
+  <!-- The model reads from bottom to top. -->
+  <g text-anchor="middle">
+    <rect x="320" y="112" width="310" height="50" class="block neutral"/>
+    <text x="475" y="133" class="zh">下一词元概率</text>
+    <text x="475" y="152" class="en">Next-token probabilities</text>
+
+    <rect x="320" y="207" width="310" height="44" class="block neutral"/>
+    <text x="475" y="235" class="zh">Softmax</text>
+
+    <rect x="320" y="274" width="310" height="46" class="block attention"/>
+    <text x="475" y="294" class="zh">线性投影</text>
+    <text x="475" y="312" class="en">Linear · hidden → vocabulary</text>
+
+    <rect x="320" y="343" width="310" height="50" class="block norm"/>
+    <text x="475" y="365" class="zh">最终层归一化</text>
+    <text x="475" y="384" class="en">Final LayerNorm</text>
+  </g>
+  <path d="M475 207 V162" class="flow"/>
+  <path d="M475 274 V251" class="flow"/>
+  <path d="M475 343 V320" class="flow"/>
+
+  <!-- Repeated pre-normalized decoder block. -->
+  <rect x="266" y="433" width="490" height="490" rx="14" fill="none" stroke="#ccc" stroke-width="4"/>
+  <rect x="284" y="419" width="256" height="29" fill="white"/>
+  <text x="296" y="440" font-size="17" font-weight="550">Transformer 块 × N</text>
+
+  <g text-anchor="middle">
+    <circle cx="475" cy="516" r="15" class="add"/>
+    <text x="475" y="523" font-size="24">+</text>
+    <text x="437" y="521" text-anchor="end" class="en">Add</text>
+
+    <rect x="320" y="557" width="310" height="54" class="block ffn"/>
+    <text x="475" y="580" class="zh">前馈网络</text>
+    <text x="475" y="600" class="en">Feed-Forward Network · FFN</text>
+
+    <rect x="320" y="637" width="310" height="46" class="block norm"/>
+    <text x="475" y="657" class="zh">层归一化</text>
+    <text x="475" y="675" class="en">LayerNorm</text>
+
+    <circle cx="475" cy="716" r="15" class="add"/>
+    <text x="475" y="723" font-size="24">+</text>
+    <text x="437" y="721" text-anchor="end" class="en">Add</text>
+
+    <rect x="320" y="757" width="310" height="54" class="block attention"/>
+    <text x="475" y="780" class="zh">带因果掩码的多头自注意力</text>
+    <text x="475" y="800" class="en">Masked Multi-Head Self-Attention</text>
+
+    <rect x="320" y="837" width="310" height="46" class="block norm"/>
+    <text x="475" y="857" class="zh">层归一化</text>
+    <text x="475" y="875" class="en">LayerNorm</text>
+  </g>
+
+  <path d="M475 501 V393" class="flow"/>
+  <path d="M475 557 V531" class="flow"/>
+  <path d="M475 637 V611" class="flow"/>
+  <path d="M475 701 V683" class="flow"/>
+  <path d="M475 757 V731" class="flow"/>
+  <path d="M475 837 V811" class="flow"/>
+
+  <!-- Each skip starts BEFORE its LayerNorm, preserving Pre-LN semantics. -->
+  <path d="M475 693 H716 V516 H490" class="flow"/>
+  <circle cx="475" cy="693" r="3" class="junction"/>
+  <path d="M475 901 H682 V716 H490" class="flow"/>
+  <circle cx="475" cy="901" r="3" class="junction"/>
+  <text x="703" y="616" text-anchor="middle" class="en" transform="rotate(-90 703 616)">Residual</text>
+  <text x="669" y="825" text-anchor="middle" class="en" transform="rotate(-90 669 825)">Residual</text>
+
+  <g>
+    <text x="48" y="760" font-size="18" font-weight="550">因果注意力</text>
+    <text x="48" y="789" class="note">每个位置只能关注</text>
+    <text x="48" y="814" class="note">自身及之前的词元</text>
+    <path d="M224 784 H308" fill="none" stroke="#888" stroke-width="1.2" stroke-dasharray="4 4"/>
+  </g>
+
+  <!-- Token and position embeddings are added before entering the stack. -->
+  <circle cx="475" cy="961" r="16" class="add"/>
+  <text x="475" y="969" text-anchor="middle" font-size="26">+</text>
+  <path d="M475 945 V883" class="flow"/>
+  <rect x="48" y="936" width="218" height="50" class="block norm"/>
+  <text x="157" y="958" text-anchor="middle" class="zh">位置嵌入</text>
+  <text x="157" y="977" text-anchor="middle" class="en">Position Embedding</text>
+  <path d="M266 961 H459" class="flow"/>
+
+  <g text-anchor="middle">
+    <rect x="320" y="1030" width="310" height="52" class="block norm"/>
+    <text x="475" y="1052" class="zh">词元嵌入</text>
+    <text x="475" y="1072" class="en">Token Embedding</text>
+
+    <rect x="320" y="1112" width="310" height="48" class="block neutral"/>
+    <text x="475" y="1133" class="zh">分词</text>
+    <text x="475" y="1152" class="en">Tokenization</text>
+
+    <rect x="320" y="1190" width="310" height="36" class="block neutral"/>
+    <text x="475" y="1214" class="zh">输入文本 · Input text</text>
+  </g>
+  <path d="M475 1030 V977" class="flow"/>
+  <path d="M475 1112 V1082" class="flow"/>
+  <path d="M475 1190 V1160" class="flow"/>
+</svg>

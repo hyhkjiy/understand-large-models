@@ -13,6 +13,8 @@
 
 ## 使用
 
+**在线阅读**:https://hyhkjiy.github.io/understand-large-models/
+
 直接用浏览器打开 `index.html` 即可,无需构建、无需服务器(各页通过相对路径互链,建议保持目录结构完整)。
 
 > 页内「▶ 运行 Python」功能基于 Pyodide,首次点击需联网下载引擎(约 10~20 秒);其余全部功能离线可用。

@@ -6,6 +6,11 @@
 <title>看懂大模型 · 交互式零基础五册</title>
 <link rel="stylesheet" href="assets/style.css">
 <style>
+.architecture-figure{margin:22px 0 0;padding:20px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.architecture-figure img{display:block;width:100%;max-width:760px;height:auto;margin:0 auto}
+.architecture-figure figcaption{margin-top:16px;color:var(--sub);font-size:.84rem;line-height:1.7}
+.architecture-links{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.88rem}
+@media(max-width:600px){.architecture-figure{padding:8px}}
 .map-flow{display:flex;flex-direction:column;gap:0;margin-top:20px}
 .map-band{border:1.5px solid var(--ink);border-radius:12px;background:var(--card);padding:14px 18px;box-shadow:3px 3px 0 rgba(31,43,62,.14);text-decoration:none;color:var(--ink);display:block;transition:transform .15s}
 .map-band:hover{transform:translateY(-3px)}
@@ -41,6 +46,7 @@
   <div class="nav-in">
     <span class="nav-brand">看懂大模型</span>
     <a class="nav-chip" href="#map" data-nav="map">知识地图</a>
+    <a class="nav-chip" href="#architecture" data-nav="architecture">Transformer 架构</a>
     <a class="nav-chip" href="#books" data-nav="books">五册目录</a>
     <a class="nav-chip" href="#routes" data-nav="routes">学习路线</a>
   </div>
@@ -101,6 +107,21 @@
     </a>
   </div>
   <p class="loop-note" style="margin-top:16px">另有一条贯穿全程的暗线:<b>反向传播</b>(第三册第四课)把罚分的坡度沿这条流水线反向送回每一个参数——训练与推理,共用同一张地图。</p>
+</section>
+
+<!-- ======================== Transformer 架构 ======================== -->
+<section class="chapter" id="architecture">
+  <div class="ch-head"><span class="ch-no">整 机</span><h2>Transformer 架构：拆开 GPT 的一层</h2><span class="en">decoder-only · pre-LN</span></div>
+  <p class="ch-lede">从下往上读：文字变成向量，经过 N 层因果自注意力与前馈网络，最后得到下一个 token 的概率。灰框是一层，右侧两条支路是残差连接。</p>
+  <figure class="architecture-figure">
+    <img src="assets/gpt-transformer-architecture.svg" width="900" height="1240" loading="lazy" alt="GPT 风格 Transformer 架构：分词、词嵌入与位置编码，经过 N 层 Pre-LN 因果多头自注意力、前馈网络和残差连接，再通过最终归一化、线性投影与 Softmax 输出下一个 token 的概率。">
+    <figcaption>本系列采用 GPT 式 Decoder-only 主线。注意力只能读取当前位置及之前的 token；每个子层先归一化，再计算并加回残差。图中补充了输出前的最终归一化，位置部分采用第二册的相加式示意。</figcaption>
+  </figure>
+  <div class="architecture-links">
+    <a href="03-transformer.html">到第三册拆解零件 →</a>
+    <a href="assets/gpt-transformer-architecture.svg" target="_blank" rel="noopener">查看原尺寸矢量图 ↗</a>
+    <a href="assets/gpt-transformer-architecture.svg" download>下载 SVG ↓</a>
+  </div>
 </section>
 
 <!-- ======================== 五册目录 ======================== -->
